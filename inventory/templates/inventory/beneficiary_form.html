@@ -1,0 +1,157 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Add Beneficiary - RoboStock{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-user-plus me-2"></i>Add Beneficiary</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" id="beneficiaryForm">
+                    {% csrf_token %}
+                    
+                    <!-- Category Field -->
+                    <div class="mb-4">
+                        <label for="{{ form.category.id_for_label }}" class="form-label fw-bold">
+                            Category <span class="text-danger">*</span>
+                        </label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                            <div class="text-danger small mt-1">{{ form.category.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Employee ID Field (shown only for Employees) -->
+                    <div class="mb-3" id="employeeIdField" style="display: none;">
+                        <label for="{{ form.employee_id.id_for_label }}" class="form-label">
+                            Employee ID <span class="text-danger">*</span>
+                        </label>
+                        {{ form.employee_id }}
+                        {% if form.employee_id.errors %}
+                            <div class="text-danger small mt-1">{{ form.employee_id.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Stream Field (shown only for Students) -->
+                    <div class="mb-3" id="streamField" style="display: none;">
+                        <label for="{{ form.stream.id_for_label }}" class="form-label">
+                            Stream <span class="text-danger">*</span>
+                        </label>
+                        {{ form.stream }}
+                        {% if form.stream.errors %}
+                            <div class="text-danger small mt-1">{{ form.stream.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Student ID Field (shown only for Students) -->
+                    <div class="mb-3" id="studentIdField" style="display: none;">
+                        <label for="{{ form.student_id.id_for_label }}" class="form-label">
+                            Student ID <span class="text-danger">*</span>
+                        </label>
+                        {{ form.student_id }}
+                        {% if form.student_id.errors %}
+                            <div class="text-danger small mt-1">{{ form.student_id.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Name Field -->
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">
+                            Full Name <span class="text-danger">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger small mt-1">{{ form.name.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Phone Number Field -->
+                    <div class="mb-3">
+                        <label for="{{ form.phone_number.id_for_label }}" class="form-label">
+                            Phone Number <span class="text-danger">*</span>
+                        </label>
+                        {{ form.phone_number }}
+                        {% if form.phone_number.errors %}
+                            <div class="text-danger small mt-1">{{ form.phone_number.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Email Field (Optional) -->
+                    <div class="mb-4">
+                        <label for="{{ form.email.id_for_label }}" class="form-label">
+                            Email <span class="text-muted small">(Optional)</span>
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-danger small mt-1">{{ form.email.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'beneficiary_list' %}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-1"></i>Save Beneficiary
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Dynamic field visibility based on category
+    function updateFieldVisibility() {
+        const category = document.getElementById('id_category').value;
+        const employeeIdField = document.getElementById('employeeIdField');
+        const streamField = document.getElementById('streamField');
+        const studentIdField = document.getElementById('studentIdField');
+        
+        // Hide all conditional fields first
+        employeeIdField.style.display = 'none';
+        streamField.style.display = 'none';
+        studentIdField.style.display = 'none';
+        
+        // Show relevant fields based on category
+        if (category === 'Employee') {
+            employeeIdField.style.display = 'block';
+        } else if (category === 'Student') {
+            streamField.style.display = 'block';
+            studentIdField.style.display = 'block';
+        }
+        // Intern and Other don't show any ID fields
+    }
+    
+    // Run on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const categorySelect = document.getElementById('id_category');
+        updateFieldVisibility();
+        
+        // Run when category changes
+        categorySelect.addEventListener('change', updateFieldVisibility);
+    });
+</script>
+
+<style>
+    .form-label {
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-label .text-danger {
+        font-size: 1.1rem;
+    }
+    
+    .card-header h4 {
+        color: white;
+    }
+</style>
+{% endblock %}
+
