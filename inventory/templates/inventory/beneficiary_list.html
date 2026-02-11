@@ -1,0 +1,50 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Beneficiaries - RoboStock{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-users me-2"></i>Beneficiaries</h1>
+    <a href="{% url 'add_beneficiary' %}" class="btn btn-primary"><i class="fas fa-user-plus me-2"></i>Add Beneficiary</a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        {% if beneficiaries %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Email</th>
+                        <th>Added By</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for beneficiary in beneficiaries %}
+                    <tr>
+                        <td class="fw-bold">{{ beneficiary.name }}</td>
+                        <td><span class="badge bg-secondary">{{ beneficiary.role }}</span></td>
+                        <td>{{ beneficiary.email|default:"-" }}</td>
+                        <td class="small text-muted">{{ beneficiary.added_by.username }}</td>
+                        <td>
+                            <a href="{% url 'beneficiary_detail' beneficiary.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-history me-1"></i>History
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="fas fa-users-slash fa-3x mb-3"></i>
+            <p>No beneficiaries found. Add students or teachers to get started.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
