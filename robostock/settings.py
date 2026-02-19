@@ -6,8 +6,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dj7+a9w=g+9y7_(iihn%1b5vqgkr_@2c5e!)6(lue7(_*e-#)4')
 
-# Set DEBUG to True only if the environment variable is explicitly 'True'
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+# Set DEBUG based on environment variable; default True locally, set DEBUG=False in Railway
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 # Allow hosts defined in environment variable, default to '*' for wide access if not specified
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
@@ -27,8 +27,8 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Proxy and Security settings for Railway/Production
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = not DEBUG  # False in local dev (HTTP), True in production (HTTPS)
+CSRF_COOKIE_SECURE = not DEBUG    # Same — avoids cookie issues over localhost HTTP
 
 
 INSTALLED_APPS = [

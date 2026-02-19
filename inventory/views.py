@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Component, Transaction, Beneficiary
+from .models import Component, Transaction, Beneficiary, Category
 from .forms import CheckoutForm, ComponentForm, BeneficiaryForm
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
@@ -8,6 +8,8 @@ from django.db.models import Q
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 
 def is_admin(user):
     return user.is_superuser
@@ -44,7 +46,6 @@ def is_admin_or_staff(user):
     return user.is_superuser or user.is_staff
 
 @login_required
-@user_passes_test(is_admin_or_staff)
 def add_component(request):
     if request.method == 'POST':
         form = ComponentForm(request.POST, request.FILES)
@@ -57,7 +58,6 @@ def add_component(request):
     return render(request, 'inventory/component_form.html', {'form': form, 'title': 'Add Component'})
 
 @login_required
-@user_passes_test(is_admin_or_staff)
 def edit_component(request, pk):
     component = get_object_or_404(Component, pk=pk)
     if request.method == 'POST':
@@ -71,7 +71,6 @@ def edit_component(request, pk):
     return render(request, 'inventory/component_form.html', {'form': form, 'title': 'Edit Component', 'component': component})
 
 @login_required
-@user_passes_test(is_admin_or_staff)
 def checkout_component(request, pk):
     component = get_object_or_404(Component, pk=pk)
     if request.method == 'POST':
@@ -99,7 +98,6 @@ def checkout_component(request, pk):
     return render(request, 'inventory/checkout_form.html', context)
 
 @login_required
-@user_passes_test(is_admin_or_staff)
 def return_component(request, transaction_id):
     transaction = get_object_or_404(Transaction, pk=transaction_id)
     if transaction.return_time:
@@ -121,13 +119,11 @@ def return_component(request, transaction_id):
     return render(request, 'inventory/return_confirm.html', {'transaction': transaction})
 
 @login_required
-@user_passes_test(is_admin_or_staff)
 def beneficiary_list(request):
     beneficiaries = Beneficiary.objects.all()
     return render(request, 'inventory/beneficiary_list.html', {'beneficiaries': beneficiaries})
 
 @login_required
-@user_passes_test(is_admin_or_staff)
 def add_beneficiary(request):
     if request.method == 'POST':
         form = BeneficiaryForm(request.POST)
@@ -212,7 +208,6 @@ def checkout_self(request, pk):
     return render(request, 'inventory/checkout_form.html', {'form': form, 'component': component, 'current_date': timezone.now()})
 
 @login_required
-@user_passes_test(is_admin_or_staff)
 def beneficiary_detail(request, pk):
     beneficiary = get_object_or_404(Beneficiary, pk=pk)
     transactions = Transaction.objects.filter(borrower=beneficiary).order_by('-checkout_time')
@@ -232,12 +227,46 @@ def add_user(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save()  # save() hashes password correctly
+            user.is_staff = True
+            user.save()
             messages.success(request, f"User '{user.username}' created successfully.")
             return redirect('user_list')
     else:
         form = UserCreationForm()
     return render(request, 'inventory/user_form.html', {'form': form, 'title': 'Add User'})
+
+
+@login_required
+@require_POST
+def add_category(request):
+    """AJAX endpoint — creates a Category and returns {id, name}."""
+    name = request.POST.get('name', '').strip()
+    if not name:
+        return JsonResponse({'error': 'Name is required.'}, status=400)
+    category, created = Category.objects.get_or_create(name=name)
+    if not created:
+        return JsonResponse({'error': f"Category '{name}' already exists.", 'id': category.pk, 'name': category.name}, status=200)
+    return JsonResponse({'id': category.pk, 'name': category.name}, status=201)
+
+
+@login_required
+@user_passes_test(is_admin)
+def category_list(request):
+    categories = Category.objects.all().order_by('name')
+    return render(request, 'inventory/category_list.html', {'categories': categories})
+
+
+@login_required
+@user_passes_test(is_admin)
+def delete_category(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    if request.method == 'POST':
+        name = category.name
+        category.delete()
+        messages.success(request, f"Category '{name}' deleted.")
+        return redirect('category_list')
+    return render(request, 'inventory/category_confirm_delete.html', {'category': category})
 
 
 @login_required
