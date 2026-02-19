@@ -14,10 +14,16 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 
 # Required for Django 4+ when using HTTPS tunnels like ngrok or Railway
-CSRF_TRUSTED_ORIGINS = os.environ.get(
-    'CSRF_TRUSTED_ORIGINS', 
+# Auto-prepend https:// to any origin that is missing a scheme
+# (e.g. if the Railway variable is set without the prefix)
+_raw_origins = os.environ.get(
+    'CSRF_TRUSTED_ORIGINS',
     'https://*.ngrok-free.app,https://*.ngrok-free.dev,https://*.railway.app'
 ).split(',')
+CSRF_TRUSTED_ORIGINS = [
+    o.strip() if '://' in o else 'https://' + o.strip()
+    for o in _raw_origins if o.strip()
+]
 
 # Proxy and Security settings for Railway/Production
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
