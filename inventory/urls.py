@@ -8,6 +8,7 @@ urlpatterns = [
     path('return/<int:transaction_id>/', views.return_component, name='return_component'),
     path('component/add/', views.add_component, name='add_component'),
     path('component/<int:pk>/edit/', views.edit_component, name='edit_component'),
+    path('component/<int:pk>/delete/', views.delete_component, name='delete_component'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('users/', views.user_list, name='user_list'),
     path('users/add/', views.add_user, name='add_user'),
@@ -19,5 +20,8 @@ urlpatterns = [
     path('checkout/self/<int:pk>/', views.checkout_self, name='checkout_self'),
     path('beneficiaries/', views.beneficiary_list, name='beneficiary_list'),
     path('beneficiary/add/', views.add_beneficiary, name='add_beneficiary'),
+    path('api/beneficiary/data/<path:employee_id>/', views.get_beneficiary_data, name='get_beneficiary_data'),
     path('beneficiary/<int:pk>/', views.beneficiary_detail, name='beneficiary_detail'),
+    path('beneficiary/<int:pk>/edit/', views.edit_beneficiary, name='edit_beneficiary'),
+    path('beneficiary/<int:pk>/delete/', views.delete_beneficiary, name='delete_beneficiary'),
 ]
