@@ -28,10 +28,13 @@ def dashboard(request):
         )
     else:
         components = Component.objects.all()
-    
+
+    low_stock_components = Component.objects.filter(quantity__lte=5).order_by('quantity', 'name')
+
     context = {
         'components': components,
         'query': query,
+        'low_stock_components': low_stock_components,
     }
     return render(request, 'inventory/dashboard.html', context)
 

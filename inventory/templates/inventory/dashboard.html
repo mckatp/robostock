@@ -19,27 +19,31 @@
                     <i class="fas fa-list me-1"></i>List
                 </button>
             </div>
-            
+
             <!-- Card Size Control (only for grid view) -->
             <div class="btn-group" role="group" id="cardSizeControl">
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setCardSize('small')" title="Small cards">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setCardSize('small')"
+                    title="Small cards">
                     <i class="fas fa-compress-alt"></i>
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setCardSize('medium')" title="Medium cards">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setCardSize('medium')"
+                    title="Medium cards">
                     <i class="fas fa-expand-alt"></i>
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setCardSize('large')" title="Large cards">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setCardSize('large')"
+                    title="Large cards">
                     <i class="fas fa-expand"></i>
                 </button>
             </div>
-            
+
             <!-- Search -->
             <form method="GET" action="{% url 'dashboard' %}" class="d-flex search-form" style="min-width: 300px;">
                 <div class="input-group">
                     <span class="input-group-text search-icon">
                         <i class="fas fa-search"></i>
                     </span>
-                    <input class="form-control search-input" type="search" name="q" placeholder="Search components..." value="{{ request.GET.q }}">
+                    <input class="form-control search-input" type="search" name="q" placeholder="Search components..."
+                        value="{{ request.GET.q }}">
                     <button class="btn btn-search" type="submit">
                         <i class="fas fa-arrow-right me-1"></i>Search
                     </button>
@@ -54,11 +58,11 @@
     <div class="col-component mb-4">
         <div class="card h-100 component-card">
             {% if component.image %}
-                <img src="{{ component.image.url }}" class="card-img-top component-img" alt="{{ component.name }}">
+            <img src="{{ component.image.url }}" class="card-img-top component-img" alt="{{ component.name }}">
             {% else %}
-                <div class="card-img-top bg-gradient d-flex align-items-center justify-content-center component-img">
-                    <i class="fas fa-microchip fa-3x text-muted"></i>
-                </div>
+            <div class="card-img-top bg-gradient d-flex align-items-center justify-content-center component-img">
+                <i class="fas fa-microchip fa-3x text-muted"></i>
+            </div>
             {% endif %}
             <div class="card-body">
                 <h5 class="card-title">{{ component.name }}</h5>
@@ -72,7 +76,8 @@
                     <small class="text-muted"><i class="fas fa-box me-1"></i>{{ component.box_number|default:"No box" }}</small>
                 </div>
                 <p class="card-text component-description">{{ component.description|truncatewords:15 }}</p>
-                <a href="{% url 'component_detail' component.pk %}" class="btn btn-outline-primary btn-sm w-100">View Details</a>
+                <a href="{% url 'component_detail' component.pk %}" class="btn btn-outline-primary btn-sm w-100">View
+                    Details</a>
             </div>
             <div class="card-footer text-muted small">
                 Updated: {{ component.last_updated|date:"M d, Y" }}
@@ -84,15 +89,54 @@
         <div class="display-1 text-muted"><i class="fas fa-search"></i></div>
         <p class="h4 mt-3">No components found.</p>
         {% if request.GET.q %}
-            <p>Try adjusting your search terms.</p>
-            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Clear Search</a>
+        <p>Try adjusting your search terms.</p>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Clear Search</a>
         {% else %}
-            <p>Get started by adding components.</p>
-            <a href="{% url 'add_component' %}" class="btn btn-primary">Add Component</a>
+        <p>Get started by adding components.</p>
+        <a href="{% url 'add_component' %}" class="btn btn-primary">Add Component</a>
         {% endif %}
     </div>
     {% endfor %}
 </div>
+
+{% if low_stock_components %}
+<!-- Low Stock Cart Box -->
+<div id="lowStockCart" class="low-stock-cart">
+    <div class="low-stock-header" onclick="toggleStockCart()">
+        <span>
+            <i class="fas fa-exclamation-triangle me-2"></i>Low Stock Alert
+            <span class="badge low-stock-badge ms-2">{{ low_stock_components.count }}</span>
+        </span>
+        <i class="fas fa-chevron-up" id="cartChevron"></i>
+    </div>
+    <div class="low-stock-body" id="lowStockBody">
+        <ul class="low-stock-list">
+            {% for item in low_stock_components %}
+            <li class="low-stock-item
+                {% if item.quantity == 0 %}stock-zero
+                {% elif item.quantity <= 2 %}stock-low
+                {% else %}stock-warn
+                {% endif %}">
+                <a href="{% url 'component_detail' item.pk %}" class="low-stock-link">
+                    <span class="item-name">{{ item.name }}</span>
+                    <span class="item-qty
+                        {% if item.quantity == 0 %}qty-zero
+                        {% elif item.quantity <= 2 %}qty-low
+                        {% else %}qty-warn
+                        {% endif %}">
+                        {% if item.quantity == 0 %}
+                        <i class="fas fa-times-circle me-1"></i>Out of stock
+                        {% else %}
+                        <i class="fas fa-cubes me-1"></i>{{ item.quantity }} left
+                        {% endif %}
+                    </span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
 
 <style>
     /* Search Enhancement */
@@ -101,14 +145,14 @@
         border-radius: 12px;
         overflow: hidden;
     }
-    
+
     .search-icon {
         background: rgba(74, 58, 122, 0.2) !important;
         border: 1px solid rgba(74, 58, 122, 0.3) !important;
         border-right: none !important;
         color: var(--accent-red);
     }
-    
+
     .search-input {
         border-left: none !important;
         border-right: none !important;
@@ -116,12 +160,12 @@
         border-top: 1px solid rgba(74, 58, 122, 0.3) !important;
         border-bottom: 1px solid rgba(74, 58, 122, 0.3) !important;
     }
-    
+
     .search-input:focus {
         box-shadow: none !important;
         background: rgba(26, 15, 46, 0.8) !important;
     }
-    
+
     .btn-search {
         background: linear-gradient(135deg, var(--accent-purple), var(--accent-red)) !important;
         border: 1px solid rgba(158, 42, 90, 0.3) !important;
@@ -133,7 +177,7 @@
         position: relative;
         overflow: hidden;
     }
-    
+
     .btn-search::before {
         content: '';
         position: absolute;
@@ -144,67 +188,268 @@
         background: rgba(255, 255, 255, 0.2);
         transition: left 0.5s ease;
     }
-    
+
     .btn-search:hover::before {
         left: 100%;
     }
-    
+
     .btn-search:hover {
         transform: translateX(3px);
         box-shadow: 0 4px 15px rgba(158, 42, 90, 0.6);
     }
-    
+
     /* Grid View Sizes */
-    .col-component { transition: all 0.3s ease; }
-    
+    .col-component {
+        transition: all 0.3s ease;
+    }
+
     /* Small cards */
-    .card-size-small .col-component { flex: 0 0 auto; width: 20%; }
-    .card-size-small .component-img { height: 120px !important; }
-    .card-size-small .card-title { font-size: 0.9rem; }
-    .card-size-small .component-description { display: none; }
-    
+    .card-size-small .col-component {
+        flex: 0 0 auto;
+        width: 20%;
+    }
+
+    .card-size-small .component-img {
+        height: 120px !important;
+    }
+
+    .card-size-small .card-title {
+        font-size: 0.9rem;
+    }
+
+    .card-size-small .component-description {
+        display: none;
+    }
+
     /* Medium cards (default) */
-    .card-size-medium .col-component { flex: 0 0 auto; width: 33.333%; }
-    .card-size-medium .component-img { height: 200px !important; }
-    
+    .card-size-medium .col-component {
+        flex: 0 0 auto;
+        width: 33.333%;
+    }
+
+    .card-size-medium .component-img {
+        height: 200px !important;
+    }
+
     /* Large cards */
-    .card-size-large .col-component { flex: 0 0 auto; width: 50%; }
-    .card-size-large .component-img { height: 300px !important; }
-    
+    .card-size-large .col-component {
+        flex: 0 0 auto;
+        width: 50%;
+    }
+
+    .card-size-large .component-img {
+        height: 300px !important;
+    }
+
     /* List View */
-    .view-list .col-component { width: 100%; }
-    .view-list .component-card { 
-        display: flex !important; 
+    .view-list .col-component {
+        width: 100%;
+    }
+
+    .view-list .component-card {
+        display: flex !important;
         flex-direction: row !important;
         max-height: 150px;
     }
-    .view-list .component-img { 
+
+    .view-list .component-img {
         width: 200px !important;
         height: 150px !important;
         object-fit: cover;
         border-radius: 16px 0 0 16px !important;
     }
+
     .view-list .card-body {
         display: flex;
         flex-direction: column;
         justify-content: space-between;
     }
-    .view-list .card-footer { display: none; }
-    .view-list .component-description { 
+
+    .view-list .card-footer {
+        display: none;
+    }
+
+    .view-list .component-description {
         display: -webkit-box;
         -webkit-line-clamp: 2;
+        line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
-    
+
     .component-img {
         height: 200px;
         object-fit: cover;
     }
-    
+
     @media (max-width: 768px) {
-        .col-component { width: 100% !important; }
-        .view-list .component-img { width: 150px !important; }
+        .col-component {
+            width: 100% !important;
+        }
+
+        .view-list .component-img {
+            width: 150px !important;
+        }
+    }
+
+    /* ── Low Stock Cart Box ── */
+    .low-stock-cart {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 320px;
+        border-radius: 16px;
+        background: rgba(18, 10, 36, 0.92);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(231, 76, 60, 0.45);
+        box-shadow: 0 8px 40px rgba(231, 76, 60, 0.25), 0 2px 12px rgba(0, 0, 0, 0.5);
+        z-index: 1050;
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .low-stock-cart:hover {
+        box-shadow: 0 12px 50px rgba(231, 76, 60, 0.4), 0 2px 16px rgba(0, 0, 0, 0.6);
+    }
+
+    .low-stock-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        cursor: pointer;
+        background: linear-gradient(135deg, rgba(158, 42, 90, 0.3), rgba(231, 76, 60, 0.25));
+        border-bottom: 1px solid rgba(231, 76, 60, 0.3);
+        color: #f8d7da;
+        font-weight: 600;
+        font-size: 0.9rem;
+        user-select: none;
+        transition: background 0.2s ease;
+    }
+
+    .low-stock-header:hover {
+        background: linear-gradient(135deg, rgba(158, 42, 90, 0.45), rgba(231, 76, 60, 0.38));
+    }
+
+    .low-stock-badge {
+        background: rgba(231, 76, 60, 0.85) !important;
+        color: #fff !important;
+        font-size: 0.75rem;
+        padding: 3px 8px !important;
+        border-radius: 999px !important;
+    }
+
+    #cartChevron {
+        font-size: 0.8rem;
+        transition: transform 0.3s ease;
+    }
+
+    .cart-collapsed #cartChevron {
+        transform: rotate(180deg);
+    }
+
+    .low-stock-body {
+        max-height: 280px;
+        overflow-y: auto;
+        transition: max-height 0.35s ease, opacity 0.3s ease;
+        opacity: 1;
+    }
+
+    .cart-collapsed .low-stock-body {
+        max-height: 0;
+        opacity: 0;
+    }
+
+    .low-stock-list {
+        list-style: none;
+        margin: 0;
+        padding: 8px 0;
+    }
+
+    .low-stock-item {
+        border-bottom: 1px solid rgba(74, 58, 122, 0.15);
+    }
+
+    .low-stock-item:last-child {
+        border-bottom: none;
+    }
+
+    .low-stock-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 16px;
+        text-decoration: none;
+        transition: background 0.2s ease;
+    }
+
+    .stock-zero .low-stock-link:hover {
+        background: rgba(231, 76, 60, 0.12);
+    }
+
+    .stock-low .low-stock-link:hover {
+        background: rgba(245, 158, 11, 0.10);
+    }
+
+    .stock-warn .low-stock-link:hover {
+        background: rgba(234, 179, 8, 0.08);
+    }
+
+    .item-name {
+        font-size: 0.84rem;
+        font-weight: 500;
+        color: #e2e8f0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 170px;
+    }
+
+    .item-qty {
+        font-size: 0.78rem;
+        font-weight: 600;
+        white-space: nowrap;
+        border-radius: 8px;
+        padding: 3px 8px;
+    }
+
+    .qty-zero {
+        color: #ff6b6b;
+        background: rgba(231, 76, 60, 0.15);
+        border: 1px solid rgba(231, 76, 60, 0.35);
+    }
+
+    .qty-low {
+        color: #ffa94d;
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .qty-warn {
+        color: #ffe066;
+        background: rgba(234, 179, 8, 0.1);
+        border: 1px solid rgba(234, 179, 8, 0.3);
+    }
+
+    .low-stock-body::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .low-stock-body::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .low-stock-body::-webkit-scrollbar-thumb {
+        background: rgba(158, 42, 90, 0.5);
+        border-radius: 4px;
+    }
+
+    @media (max-width: 576px) {
+        .low-stock-cart {
+            width: calc(100vw - 32px);
+            right: 16px;
+            bottom: 16px;
+        }
     }
 </style>
 
@@ -212,13 +457,13 @@
     // Load saved preferences
     const savedView = localStorage.getItem('viewMode') || 'grid';
     const savedSize = localStorage.getItem('cardSize') || 'medium';
-    
+
     function switchView(viewType) {
         const container = document.getElementById('componentsContainer');
         const gridBtn = document.getElementById('gridViewBtn');
         const listBtn = document.getElementById('listViewBtn');
         const sizeControl = document.getElementById('cardSizeControl');
-        
+
         if (viewType === 'grid') {
             container.classList.remove('view-list');
             gridBtn.classList.add('active');
@@ -230,23 +475,34 @@
             gridBtn.classList.remove('active');
             sizeControl.style.display = 'none';
         }
-        
+
         localStorage.setItem('viewMode', viewType);
     }
-    
+
     function setCardSize(size) {
         const container = document.getElementById('componentsContainer');
         container.classList.remove('card-size-small', 'card-size-medium', 'card-size-large');
         container.classList.add('card-size-' + size);
         localStorage.setItem('cardSize', size);
     }
-    
+
     // Initialize view on page load
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         switchView(savedView);
         setCardSize(savedSize);
+        // Restore cart collapsed state
+        if (localStorage.getItem('stockCartCollapsed') === 'true') {
+            const cart = document.getElementById('lowStockCart');
+            if (cart) cart.classList.add('cart-collapsed');
+        }
     });
+
+    function toggleStockCart() {
+        const cart = document.getElementById('lowStockCart');
+        if (!cart) return;
+        const collapsed = cart.classList.toggle('cart-collapsed');
+        localStorage.setItem('stockCartCollapsed', collapsed);
+    }
 </script>
 
 {% endblock %}
-
