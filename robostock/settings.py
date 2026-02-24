@@ -1,34 +1,36 @@
+from decouple import config
 from pathlib import Path
 import os
-import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dj7+a9w=g+9y7_(iihn%1b5vqgkr_@2c5e!)6(lue7(_*e-#)4')
+SECRET_KEY = config('SECRET_KEY')
 
-# Set DEBUG based on environment variable; default True locally, set DEBUG=False in Railway
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-# Allow hosts defined in environment variable, default to '*' for wide access if not specified
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+# Set USE_HTTPS=True in .env only when your server has an SSL certificate.
+# On a plain HTTP LAN deployment this must be False, even if DEBUG=False.
+USE_HTTPS = config('USE_HTTPS', default=False, cast=bool)
+
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.split(',')])
 
 
-# Required for Django 4+ when using HTTPS tunnels like ngrok or Railway
-# Auto-prepend https:// to any origin that is missing a scheme
-# (e.g. if the Railway variable is set without the prefix)
-_raw_origins = os.environ.get(
-    'CSRF_TRUSTED_ORIGINS',
-    'https://*.ngrok-free.app,https://*.ngrok-free.dev,https://*.railway.app'
-).split(',')
+# Add your production domain(s) to CSRF_TRUSTED_ORIGINS in .env, comma-separated
+# e.g. CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+_raw_origins = config('CSRF_TRUSTED_ORIGINS', default='').split(',')
 CSRF_TRUSTED_ORIGINS = [
     o.strip() if '://' in o else 'https://' + o.strip()
     for o in _raw_origins if o.strip()
 ]
 
-# Proxy and Security settings for Railway/Production
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = not DEBUG  # False in local dev (HTTP), True in production (HTTPS)
-CSRF_COOKIE_SECURE = not DEBUG    # Same — avoids cookie issues over localhost HTTP
+# Security settings
+# COOKIE_SECURE flags must be False on plain HTTP (local LAN).
+# Only enable when you have a real SSL certificate (USE_HTTPS=True in .env).
+SESSION_COOKIE_SECURE = USE_HTTPS
+CSRF_COOKIE_SECURE = USE_HTTPS
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
 
 
 INSTALLED_APPS = [
@@ -74,11 +76,11 @@ WSGI_APPLICATION = 'robostock.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "robostock_db",
-        "USER": "muhasin_robostock",
-        "PASSWORD": "Harry@3108",
-        "HOST": "localhost",
-        "PORT": "5432",
+        "NAME": config("DB_NAME"),
+        "USER": config("DB_USER"),
+        "PASSWORD": config("DB_PASSWORD"),
+        "HOST": config("DB_HOST"),
+        "PORT": config("DB_PORT"),
     }
 }
 
@@ -101,21 +103,6 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# --- Cloudinary (persistent media storage for Railway) ---
-# Set these three env vars in Railway's dashboard (Variables tab):
-#   CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY':    os.environ.get('CLOUDINARY_API_KEY'),
-    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
-}
-
-if all(CLOUDINARY_STORAGE.values()):
-    # Production: store uploads on Cloudinary
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-    INSTALLED_APPS += ['cloudinary_storage', 'cloudinary']
-# else: local dev keeps using MEDIA_ROOT on disk (no changes needed)
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_REDIRECT_URL = 'dashboard'
@@ -128,6 +115,6 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'bloombergairoboticslab@gmail.com'
-EMAIL_HOST_PASSWORD = 'femeqwhipvsnftuv'
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
