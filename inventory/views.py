@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Component, Transaction, Beneficiary, Category
+from .models import Component, Transaction, Beneficiary, Category, Sale
 from .forms import CheckoutForm, ComponentForm, BeneficiaryForm
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from django.contrib import messages
 from django.http import JsonResponse
-from .forms import CheckoutForm, ComponentForm, BeneficiaryForm, EnhancedUserCreationForm
+from .forms import CheckoutForm, ComponentForm, BeneficiaryForm, EnhancedUserCreationForm, SellForm
 from django.core.mail import send_mail
 from django.views.decorators.http import require_POST
 
@@ -29,12 +29,38 @@ def dashboard(request):
     else:
         components = Component.objects.all()
 
+    # Public view for logged-out users: just lab stock + search
+    if not request.user.is_authenticated:
+        return render(request, 'inventory/public_inventory.html', {
+            'components': components.order_by('name'),
+            'query': query,
+            'total_components': components.count(),
+        })
+
     low_stock_components = Component.objects.filter(quantity__lte=5).order_by('quantity', 'name')
 
+    # Limit to latest 4 items for dashboard summary
+    latest_components = components.order_by('-last_updated')[:4]
+    latest_sales = Sale.objects.all().order_by('-sale_time')[:4]
+
+    # Summary statistics
+    from django.db.models import Sum, Count
+    total_components = Component.objects.count()
+    total_revenue = Sale.objects.filter(is_paid=True).aggregate(total=Sum('total_price'))['total'] or 0
+    active_checkouts = Transaction.objects.filter(return_time__isnull=True).count()
+    low_stock_count = low_stock_components.count()
+    unpaid_sales = Sale.objects.filter(is_paid=False).aggregate(total=Sum('total_price'))['total'] or 0
+
     context = {
-        'components': components,
+        'components': latest_components,
         'query': query,
         'low_stock_components': low_stock_components,
+        'sales': latest_sales,
+        'total_components': total_components,
+        'total_revenue': total_revenue,
+        'active_checkouts': active_checkouts,
+        'low_stock_count': low_stock_count,
+        'unpaid_sales': unpaid_sales,
     }
     return render(request, 'inventory/dashboard.html', context)
 
@@ -315,7 +341,8 @@ def checkout_self(request, pk):
 def beneficiary_detail(request, pk):
     beneficiary = get_object_or_404(Beneficiary, pk=pk)
     transactions = Transaction.objects.filter(borrower=beneficiary).order_by('-checkout_time')
-    return render(request, 'inventory/beneficiary_detail.html', {'beneficiary': beneficiary, 'transactions': transactions})
+    sales = Sale.objects.filter(buyer=beneficiary).order_by('-sale_time')
+    return render(request, 'inventory/beneficiary_detail.html', {'beneficiary': beneficiary, 'transactions': transactions, 'sales': sales})
 
 
 @login_required
@@ -442,3 +469,98 @@ def delete_user(request, pk):
         messages.success(request, f"User '{user.username}' deleted.")
         return redirect('user_list')
     return render(request, 'inventory/user_confirm_delete.html', {'user_obj': user})
+
+@login_required
+def sell_component(request, pk):
+    component = get_object_or_404(Component, pk=pk)
+    if request.method == 'POST':
+        form = SellForm(request.POST, component=component)
+        if form.is_valid():
+            sale = form.save(commit=False)
+            sale.component = component
+            sale.authorized_by = request.user
+            # Calculate total price
+            sale.total_price = sale.quantity_sold * sale.price_per_unit
+            sale.save()
+            
+            # Decrease quantity permanently
+            component.quantity -= sale.quantity_sold
+            component.save()
+            
+            # Send email notification if buyer has email
+            if sale.buyer and sale.buyer.email:
+                try:
+                    subject = f"RoboStock: Component Purchase Receipt - {component.name}"
+                    message = f"""
+Hello {sale.buyer.name},
+
+You have successfully purchased an item from the RoboStock Laboratory Inventory.
+
+Details:
+- Component: {component.name}
+- Quantity: {sale.quantity_sold}
+- Price per Unit: ₹{sale.price_per_unit}
+- Total Price: ₹{sale.total_price}
+- Status: {'Paid' if sale.is_paid else 'Unpaid'}
+- Sale Time: {sale.sale_time.strftime('%Y-%m-%d %H:%M:%S')}
+- Authorized By: {request.user.get_full_name() or request.user.username}
+
+Thank you for your business.
+
+Best regards,
+RoboStock Lab Management
+                    """
+                    send_mail(
+                        subject,
+                        message,
+                        None, # Uses DEFAULT_FROM_EMAIL
+                        [sale.buyer.email],
+                        fail_silently=True,
+                    )
+                except Exception as e:
+                    print(f"Error sending email: {e}")
+
+            messages.success(request, f"Sold {sale.quantity_sold} of {component.name} to {sale.buyer.name if sale.buyer else 'Unknown'}")
+            return redirect('component_detail', pk=pk)
+    else:
+        form = SellForm(component=component)
+    
+    context = {
+        'form': form,
+        'component': component,
+        'current_date': timezone.now()
+    }
+    return render(request, 'inventory/sell_form.html', context)
+
+@login_required
+@require_POST
+def mark_sale_paid(request, pk):
+    sale = get_object_or_404(Sale, pk=pk)
+    sale.is_paid = True
+    sale.save()
+    messages.success(request, f"Sale of {sale.component.name} to {sale.buyer.name if sale.buyer else 'Unknown'} marked as paid.")
+    return redirect('dashboard')
+@login_required
+def component_list(request):
+    query = request.GET.get('q')
+    if query:
+        components = Component.objects.filter(
+            Q(name__icontains=query) | 
+            Q(description__icontains=query) | 
+            Q(category__name__icontains=query) |
+            Q(serial_number__icontains=query) |
+            Q(box_number__icontains=query)
+        )
+    else:
+        components = Component.objects.all().order_by('name')
+        
+    return render(request, 'inventory/component_list.html', {
+        'components': components,
+        'query': query
+    })
+
+@login_required
+def sale_list(request):
+    sales = Sale.objects.all().order_by('-sale_time')
+    return render(request, 'inventory/sale_list.html', {'sales': sales})
+

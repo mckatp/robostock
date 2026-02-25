@@ -74,6 +74,9 @@
                             <a href="{% url 'checkout_component' component.pk %}" class="btn btn-success btn-lg px-4 shadow-sm">
                                 <i class="fas fa-cart-plus me-2"></i>Checkout Component
                             </a>
+                            <a href="{% url 'sell_component' component.pk %}" class="btn btn-primary btn-lg px-4 shadow-sm">
+                                <i class="fas fa-hand-holding-usd me-2"></i>Sell Component
+                            </a>
                             {% else %}
                             <button class="btn btn-secondary btn-lg px-4" disabled>
                                 <i class="fas fa-ban me-2"></i>Out of Stock
@@ -118,6 +121,9 @@
                                 <td class="ps-4">
                                     <div class="fw-bold">{{ t.borrower.name }}</div>
                                     <div class="small text-muted">{{ t.borrower.category }}</div>
+                                    {% if t.notes %}
+                                    <div class="small text-muted mt-1 fst-italic"><i class="fas fa-sticky-note me-1"></i>{{ t.notes }}</div>
+                                    {% endif %}
                                 </td>
                                 <td>{{ t.authorized_by.get_full_name|default:t.authorized_by.username }}</td>
                                 <td><span class="badge bg-info text-dark bg-opacity-10 border border-info px-3">{{ t.quantity_taken }}</span></td>

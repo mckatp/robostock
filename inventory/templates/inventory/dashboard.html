@@ -3,506 +3,353 @@
 {% block title %}Dashboard - RoboStock{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-4">
-        <h1><i class="fas fa-boxes me-2"></i>Lab Components</h1>
-        <p class="text-muted">Manage and track your robotics inventory.</p>
-    </div>
-    <div class="col-md-8">
-        <div class="d-flex gap-2 align-items-center justify-content-end flex-wrap">
-            <!-- View Toggle -->
-            <div class="btn-group" role="group">
-                <button type="button" class="btn btn-outline-primary" id="gridViewBtn" onclick="switchView('grid')">
-                    <i class="fas fa-th me-1"></i>Grid
-                </button>
-                <button type="button" class="btn btn-outline-primary" id="listViewBtn" onclick="switchView('list')">
-                    <i class="fas fa-list me-1"></i>List
-                </button>
-            </div>
 
-            <!-- Card Size Control (only for grid view) -->
-            <div class="btn-group" role="group" id="cardSizeControl">
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setCardSize('small')"
-                    title="Small cards">
-                    <i class="fas fa-compress-alt"></i>
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setCardSize('medium')"
-                    title="Medium cards">
-                    <i class="fas fa-expand-alt"></i>
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setCardSize('large')"
-                    title="Large cards">
-                    <i class="fas fa-expand"></i>
-                </button>
-            </div>
-
-            <!-- Search -->
-            <form method="GET" action="{% url 'dashboard' %}" class="d-flex search-form" style="min-width: 300px;">
-                <div class="input-group">
-                    <span class="input-group-text search-icon">
-                        <i class="fas fa-search"></i>
-                    </span>
-                    <input class="form-control search-input" type="search" name="q" placeholder="Search components..."
-                        value="{{ request.GET.q }}">
-                    <button class="btn btn-search" type="submit">
-                        <i class="fas fa-arrow-right me-1"></i>Search
-                    </button>
-                </div>
-            </form>
+<!-- ══════════ Hero / Welcome Strip ══════════ -->
+<div class="dash-hero mb-4">
+    <div class="row align-items-center">
+        <div class="col-lg-7">
+            <h1 class="dash-title">
+                <span class="dash-wave">👋</span> Welcome back{% if user.first_name %}, {{ user.first_name }}{% endif %}
+            </h1>
+            <p class="dash-subtitle">Here's what's happening with your lab inventory today.</p>
+        </div>
+        <div class="col-lg-5 text-lg-end mt-3 mt-lg-0">
+            <a href="{% url 'add_component' %}" class="btn btn-primary btn-lg me-2 dash-action-btn">
+                <i class="fas fa-plus me-2"></i>Add Item
+            </a>
+            <a href="{% url 'component_list' %}" class="btn btn-outline-light btn-lg dash-action-btn">
+                <i class="fas fa-boxes me-2"></i>All Inventory
+            </a>
         </div>
     </div>
 </div>
 
-<div class="row" id="componentsContainer">
-    {% for component in components %}
-    <div class="col-component mb-4">
-        <div class="card h-100 component-card">
-            {% if component.image %}
-            <img src="{{ component.image.url }}" class="card-img-top component-img" alt="{{ component.name }}">
-            {% else %}
-            <div class="card-img-top bg-gradient d-flex align-items-center justify-content-center component-img">
-                <i class="fas fa-microchip fa-3x text-muted"></i>
+<!-- ══════════ Stat Cards ══════════ -->
+<div class="row g-4 mb-5">
+    <!-- Total Components -->
+    <div class="col-6 col-lg-3">
+        <div class="stat-card stat-card--components">
+            <div class="stat-card__icon">
+                <i class="fas fa-microchip"></i>
             </div>
-            {% endif %}
-            <div class="card-body">
-                <h5 class="card-title">{{ component.name }}</h5>
-                <p class="card-text text-muted small mb-2">
-                    <span class="badge bg-secondary">{{ component.category.name }}</span>
-                </p>
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="badge bg-{{ component.quantity|yesno:'success,danger' }}">
-                        Qty: {{ component.quantity }}
-                    </span>
-                    <small class="text-muted"><i class="fas fa-box me-1"></i>{{ component.box_number|default:"No box" }}</small>
-                </div>
-                <p class="card-text component-description">{{ component.description|truncatewords:15 }}</p>
-                <a href="{% url 'component_detail' component.pk %}" class="btn btn-outline-primary btn-sm w-100">View
-                    Details</a>
-            </div>
-            <div class="card-footer text-muted small">
-                Updated: {{ component.last_updated|date:"M d, Y" }}
+            <div class="stat-card__body">
+                <div class="stat-card__value">{{ total_components }}</div>
+                <div class="stat-card__label">Total Components</div>
             </div>
         </div>
     </div>
-    {% empty %}
-    <div class="col-12 text-center py-5">
-        <div class="display-1 text-muted"><i class="fas fa-search"></i></div>
-        <p class="h4 mt-3">No components found.</p>
-        {% if request.GET.q %}
-        <p>Try adjusting your search terms.</p>
-        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Clear Search</a>
-        {% else %}
-        <p>Get started by adding components.</p>
-        <a href="{% url 'add_component' %}" class="btn btn-primary">Add Component</a>
-        {% endif %}
+    <!-- Revenue -->
+    <div class="col-6 col-lg-3">
+        <div class="stat-card stat-card--revenue">
+            <div class="stat-card__icon">
+                <i class="fas fa-indian-rupee-sign"></i>
+            </div>
+            <div class="stat-card__body">
+                <div class="stat-card__value">₹{{ total_revenue }}</div>
+                <div class="stat-card__label">Revenue Collected</div>
+            </div>
+        </div>
     </div>
-    {% endfor %}
+    <!-- Active Checkouts -->
+    <div class="col-6 col-lg-3">
+        <div class="stat-card stat-card--checkouts">
+            <div class="stat-card__icon">
+                <i class="fas fa-hand-holding"></i>
+            </div>
+            <div class="stat-card__body">
+                <div class="stat-card__value">{{ active_checkouts }}</div>
+                <div class="stat-card__label">Active Checkouts</div>
+            </div>
+        </div>
+    </div>
+    <!-- Low Stock / Unpaid -->
+    <div class="col-6 col-lg-3">
+        <div class="stat-card stat-card--alerts">
+            <div class="stat-card__icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-card__body">
+                <div class="stat-card__value">{{ low_stock_count }}</div>
+                <div class="stat-card__label">Low Stock Items</div>
+                {% if unpaid_sales %}
+                <div class="stat-card__sub text-warning"><i class="fas fa-clock me-1"></i>₹{{ unpaid_sales }} unpaid</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
 
-{% if low_stock_components %}
-<!-- Low Stock Cart Box -->
-<div id="lowStockCart" class="low-stock-cart">
-    <div class="low-stock-header" onclick="toggleStockCart()">
-        <span>
-            <i class="fas fa-exclamation-triangle me-2"></i>Low Stock Alert
-            <span class="badge low-stock-badge ms-2">{{ low_stock_components.count }}</span>
-        </span>
-        <i class="fas fa-chevron-up" id="cartChevron"></i>
-    </div>
-    <div class="low-stock-body" id="lowStockBody">
-        <ul class="low-stock-list">
-            {% for item in low_stock_components %}
-            <li class="low-stock-item
-                {% if item.quantity == 0 %}stock-zero
-                {% elif item.quantity <= 2 %}stock-low
-                {% else %}stock-warn
-                {% endif %}">
-                <a href="{% url 'component_detail' item.pk %}" class="low-stock-link">
-                    <span class="item-name">{{ item.name }}</span>
-                    <span class="item-qty
-                        {% if item.quantity == 0 %}qty-zero
-                        {% elif item.quantity <= 2 %}qty-low
-                        {% else %}qty-warn
-                        {% endif %}">
-                        {% if item.quantity == 0 %}
-                        <i class="fas fa-times-circle me-1"></i>Out of stock
-                        {% else %}
-                        <i class="fas fa-cubes me-1"></i>{{ item.quantity }} left
-                        {% endif %}
-                    </span>
+<!-- ══════════ Main Content Grid ══════════ -->
+<div class="row g-4">
+
+    <!-- ──── Left: Recent Components ──── -->
+    <div class="col-xl-8">
+        <div class="section-header">
+            <div>
+                <h2 class="section-title"><i class="fas fa-bolt me-2 text-warning"></i>Recently Updated</h2>
+                <p class="section-desc text-muted mb-0">Your latest inventory changes at a glance.</p>
+            </div>
+            <a href="{% url 'component_list' %}" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                View All <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        <div class="row g-3">
+            {% for component in components %}
+            <div class="col-md-6">
+                <a href="{% url 'component_detail' component.pk %}" class="text-decoration-none">
+                    <div class="comp-card">
+                        <div class="comp-card__img">
+                            {% if component.image %}
+                            <img src="{{ component.image.url }}" alt="{{ component.name }}">
+                            {% else %}
+                            <div class="comp-card__placeholder">
+                                <i class="fas fa-microchip"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="comp-card__body">
+                            <h5 class="comp-card__name">{{ component.name }}</h5>
+                            <span class="comp-card__cat">{{ component.category.name }}</span>
+                            <div class="comp-card__footer">
+                                <span class="comp-card__qty {% if component.quantity == 0 %}qty-zero{% elif component.quantity <= 5 %}qty-low{% else %}qty-ok{% endif %}">
+                                    {% if component.quantity == 0 %}
+                                    <i class="fas fa-times-circle me-1"></i>Out of stock
+                                    {% else %}
+                                    <i class="fas fa-cubes me-1"></i>{{ component.quantity }} in stock
+                                    {% endif %}
+                                </span>
+                                <span class="comp-card__date text-muted">{{ component.last_updated|date:"M d" }}</span>
+                            </div>
+                        </div>
+                        <div class="comp-card__arrow"><i class="fas fa-chevron-right"></i></div>
+                    </div>
                 </a>
-            </li>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="empty-state">
+                    <i class="fas fa-box-open"></i>
+                    <p>No components yet. Start by adding your first item!</p>
+                    <a href="{% url 'add_component' %}" class="btn btn-primary btn-sm">Add Component</a>
+                </div>
+            </div>
             {% endfor %}
-        </ul>
+        </div>
+    </div>
+
+    <!-- ──── Right: Sidebar ──── -->
+    <div class="col-xl-4">
+
+        <!-- Recent Sales -->
+        <div class="section-header">
+            <h2 class="section-title"><i class="fas fa-receipt me-2 text-info"></i>Recent Sales</h2>
+            <a href="{% url 'sale_list' %}" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                View All <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        {% if sales %}
+        <div class="sales-list">
+            {% for sale in sales %}
+            <div class="sale-item">
+                <div class="sale-item__left">
+                    <div class="sale-item__icon {% if sale.is_paid %}sale-paid{% else %}sale-unpaid{% endif %}">
+                        {% if sale.is_paid %}<i class="fas fa-check"></i>{% else %}<i class="fas fa-clock"></i>{% endif %}
+                    </div>
+                    <div>
+                        <div class="sale-item__name">{{ sale.component.name|truncatechars:22 }}</div>
+                        <div class="sale-item__buyer text-muted small">
+                            <i class="fas fa-user me-1"></i>{{ sale.buyer.name|truncatechars:18 }}
+                        </div>
+                    </div>
+                </div>
+                <div class="sale-item__right">
+                    <div class="sale-item__price">₹{{ sale.total_price }}</div>
+                    <div class="sale-item__date text-muted">{{ sale.sale_time|date:"M d" }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state small-empty">
+            <i class="fas fa-receipt"></i>
+            <p>No sales recorded yet.</p>
+        </div>
+        {% endif %}
+
+        <!-- Low Stock Alerts -->
+        {% if low_stock_components %}
+        <div class="section-header mt-4">
+            <h2 class="section-title"><i class="fas fa-exclamation-triangle me-2 text-danger"></i>Low Stock</h2>
+        </div>
+        <div class="low-stock-panel">
+            {% for item in low_stock_components %}
+            <a href="{% url 'component_detail' item.pk %}" class="low-stock-row">
+                <span class="low-stock-row__name">{{ item.name|truncatechars:24 }}</span>
+                <span class="low-stock-row__qty 
+                    {% if item.quantity == 0 %}qty-zero{% elif item.quantity <= 2 %}qty-critical{% else %}qty-warn{% endif %}">
+                    {% if item.quantity == 0 %}Out{% else %}{{ item.quantity }} left{% endif %}
+                </span>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
     </div>
 </div>
-{% endif %}
 
+<!-- ══════════ Dashboard Styles ══════════ -->
 <style>
-    /* Search Enhancement */
-    .search-form .input-group {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        border-radius: 12px;
-        overflow: hidden;
-    }
-
-    .search-icon {
-        background: rgba(74, 58, 122, 0.2) !important;
-        border: 1px solid rgba(74, 58, 122, 0.3) !important;
-        border-right: none !important;
-        color: var(--accent-red);
-    }
-
-    .search-input {
-        border-left: none !important;
-        border-right: none !important;
-        background: rgba(26, 15, 46, 0.6) !important;
-        border-top: 1px solid rgba(74, 58, 122, 0.3) !important;
-        border-bottom: 1px solid rgba(74, 58, 122, 0.3) !important;
-    }
-
-    .search-input:focus {
-        box-shadow: none !important;
-        background: rgba(26, 15, 46, 0.8) !important;
-    }
-
-    .btn-search {
-        background: linear-gradient(135deg, var(--accent-purple), var(--accent-red)) !important;
-        border: 1px solid rgba(158, 42, 90, 0.3) !important;
-        border-left: none !important;
-        color: white !important;
-        font-weight: 600;
-        padding: 0.5rem 1.5rem;
-        transition: all 0.3s ease;
+    /* ── Hero ── */
+    .dash-hero {
+        background: linear-gradient(135deg, rgba(74,58,122,0.25) 0%, rgba(158,42,90,0.2) 100%);
+        border: 1px solid rgba(158,42,90,0.25);
+        border-radius: 20px;
+        padding: 2rem 2.5rem;
         position: relative;
         overflow: hidden;
     }
-
-    .btn-search::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: rgba(255, 255, 255, 0.2);
-        transition: left 0.5s ease;
+    .dash-hero::before {
+        content:'';position:absolute;top:-40%;right:-10%;width:300px;height:300px;
+        background:radial-gradient(circle, rgba(231,76,60,0.12), transparent 70%);
+        border-radius:50%;pointer-events:none;
     }
+    .dash-title { font-size:1.8rem;font-weight:700;margin-bottom:.25rem; }
+    .dash-subtitle { color:var(--text-secondary);font-size:1rem;margin:0; }
+    .dash-wave { display:inline-block;animation:wave 2.5s ease-in-out infinite; }
+    @keyframes wave { 0%,100%{transform:rotate(0)} 15%{transform:rotate(14deg)} 30%{transform:rotate(-8deg)} 40%{transform:rotate(14deg)} 50%{transform:rotate(-4deg)} 60%{transform:rotate(10deg)} 70%{transform:rotate(0)} }
+    .dash-action-btn { border-radius:12px;font-weight:600;padding:.6rem 1.4rem; }
 
-    .btn-search:hover::before {
-        left: 100%;
+    /* ── Stat Cards ── */
+    .stat-card {
+        display:flex;align-items:center;gap:1rem;
+        padding:1.25rem 1.5rem;border-radius:16px;
+        background:var(--card-bg);backdrop-filter:blur(10px);
+        border:1px solid rgba(74,58,122,0.2);
+        transition:all .3s ease;position:relative;overflow:hidden;
     }
-
-    .btn-search:hover {
-        transform: translateX(3px);
-        box-shadow: 0 4px 15px rgba(158, 42, 90, 0.6);
+    .stat-card:hover { transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,0.35); }
+    .stat-card::after {
+        content:'';position:absolute;top:0;right:0;width:80px;height:100%;
+        opacity:.06;pointer-events:none;
     }
+    .stat-card--components::after { background:linear-gradient(135deg,#7c3aed,#a78bfa); }
+    .stat-card--revenue::after    { background:linear-gradient(135deg,#10b981,#34d399); }
+    .stat-card--checkouts::after  { background:linear-gradient(135deg,#3b82f6,#60a5fa); }
+    .stat-card--alerts::after     { background:linear-gradient(135deg,#ef4444,#f87171); }
 
-    /* Grid View Sizes */
-    .col-component {
-        transition: all 0.3s ease;
+    .stat-card__icon {
+        width:48px;height:48px;border-radius:14px;
+        display:flex;align-items:center;justify-content:center;
+        font-size:1.2rem;flex-shrink:0;
     }
+    .stat-card--components .stat-card__icon { background:rgba(124,58,237,0.15);color:#a78bfa; }
+    .stat-card--revenue .stat-card__icon    { background:rgba(16,185,129,0.15);color:#34d399; }
+    .stat-card--checkouts .stat-card__icon  { background:rgba(59,130,246,0.15);color:#60a5fa; }
+    .stat-card--alerts .stat-card__icon     { background:rgba(239,68,68,0.15);color:#f87171; }
 
-    /* Small cards */
-    .card-size-small .col-component {
-        flex: 0 0 auto;
-        width: 20%;
+    .stat-card__value { font-size:1.5rem;font-weight:700;line-height:1.2; }
+    .stat-card__label { font-size:.78rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;font-weight:500; }
+    .stat-card__sub   { font-size:.72rem;margin-top:2px; }
+
+    /* ── Section Headers ── */
+    .section-header {
+        display:flex;justify-content:space-between;align-items:center;
+        margin-bottom:1rem;padding-bottom:.75rem;
+        border-bottom:1px solid rgba(74,58,122,0.15);
     }
+    .section-title { font-size:1.15rem;font-weight:600;margin:0; }
+    .section-desc  { font-size:.85rem; }
 
-    .card-size-small .component-img {
-        height: 120px !important;
+    /* ── Component Cards ── */
+    .comp-card {
+        display:flex;align-items:center;gap:1rem;
+        padding:1rem;border-radius:14px;
+        background:var(--card-bg);backdrop-filter:blur(10px);
+        border:1px solid rgba(74,58,122,0.2);
+        transition:all .3s ease;cursor:pointer;
     }
-
-    .card-size-small .card-title {
-        font-size: 0.9rem;
+    .comp-card:hover {
+        border-color:rgba(158,42,90,0.4);
+        transform:translateY(-3px);
+        box-shadow:0 8px 30px rgba(158,42,90,0.2);
     }
-
-    .card-size-small .component-description {
-        display: none;
+    .comp-card__img { width:64px;height:64px;border-radius:12px;overflow:hidden;flex-shrink:0; }
+    .comp-card__img img { width:100%;height:100%;object-fit:cover; }
+    .comp-card__placeholder {
+        width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+        background:linear-gradient(135deg,rgba(74,58,122,0.3),rgba(158,42,90,0.2));
+        color:var(--text-secondary);font-size:1.4rem;
     }
+    .comp-card__body { flex:1;min-width:0; }
+    .comp-card__name { font-size:.95rem;font-weight:600;color:var(--text-primary);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .comp-card__cat  { font-size:.72rem;color:var(--accent-red);text-transform:uppercase;letter-spacing:.5px;font-weight:500; }
+    .comp-card__footer { display:flex;justify-content:space-between;align-items:center;margin-top:.5rem; }
+    .comp-card__qty  { font-size:.75rem;font-weight:600;padding:3px 8px;border-radius:8px; }
+    .comp-card__date { font-size:.72rem; }
+    .comp-card__arrow { color:rgba(255,255,255,0.15);font-size:.8rem;transition:all .3s; }
+    .comp-card:hover .comp-card__arrow { color:var(--accent-red);transform:translateX(3px); }
 
-    /* Medium cards (default) */
-    .card-size-medium .col-component {
-        flex: 0 0 auto;
-        width: 33.333%;
+    .qty-ok   { color:#34d399;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25); }
+    .qty-low  { color:#fbbf24;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25); }
+    .qty-zero { color:#f87171;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25); }
+
+    /* ── Sales List ── */
+    .sales-list { display:flex;flex-direction:column;gap:2px; }
+    .sale-item {
+        display:flex;justify-content:space-between;align-items:center;
+        padding:.85rem 1rem;border-radius:12px;
+        background:var(--card-bg);border:1px solid rgba(74,58,122,0.15);
+        transition:all .2s ease;
     }
+    .sale-item:hover { background:rgba(74,58,122,0.2);border-color:rgba(74,58,122,0.35); }
+    .sale-item__left  { display:flex;align-items:center;gap:.75rem;min-width:0; }
+    .sale-item__icon  { width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.75rem;flex-shrink:0; }
+    .sale-paid  { background:rgba(16,185,129,0.15);color:#34d399; }
+    .sale-unpaid { background:rgba(245,158,11,0.15);color:#fbbf24; }
+    .sale-item__name  { font-size:.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .sale-item__right { text-align:right;flex-shrink:0; }
+    .sale-item__price { font-size:.9rem;font-weight:700;color:#34d399; }
+    .sale-item__date  { font-size:.72rem; }
 
-    .card-size-medium .component-img {
-        height: 200px !important;
+    /* ── Low Stock Panel ── */
+    .low-stock-panel {
+        border-radius:14px;overflow:hidden;
+        border:1px solid rgba(239,68,68,0.2);
+        background:rgba(239,68,68,0.03);
     }
-
-    /* Large cards */
-    .card-size-large .col-component {
-        flex: 0 0 auto;
-        width: 50%;
+    .low-stock-row {
+        display:flex;justify-content:space-between;align-items:center;
+        padding:.7rem 1rem;text-decoration:none;
+        border-bottom:1px solid rgba(239,68,68,0.08);
+        transition:all .2s ease;
     }
+    .low-stock-row:last-child { border-bottom:none; }
+    .low-stock-row:hover { background:rgba(239,68,68,0.08); }
+    .low-stock-row__name { font-size:.84rem;font-weight:500;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .low-stock-row__qty  { font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap; }
+    .qty-critical { color:#fbbf24;background:rgba(245,158,11,0.15); }
+    .qty-warn     { color:#fbbf24;background:rgba(234,179,8,0.1); }
 
-    .card-size-large .component-img {
-        height: 300px !important;
+    /* ── Empty State ── */
+    .empty-state {
+        text-align:center;padding:3rem 1.5rem;border-radius:14px;
+        background:var(--card-bg);border:1px dashed rgba(74,58,122,0.25);
+        color:var(--text-secondary);
     }
+    .empty-state i { font-size:2.5rem;opacity:.2;margin-bottom:1rem;display:block; }
+    .empty-state p { margin-bottom:.75rem; }
+    .small-empty { padding:2rem 1rem; }
+    .small-empty i { font-size:1.5rem; }
 
-    /* List View */
-    .view-list .col-component {
-        width: 100%;
-    }
-
-    .view-list .component-card {
-        display: flex !important;
-        flex-direction: row !important;
-        max-height: 150px;
-    }
-
-    .view-list .component-img {
-        width: 200px !important;
-        height: 150px !important;
-        object-fit: cover;
-        border-radius: 16px 0 0 16px !important;
-    }
-
-    .view-list .card-body {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-
-    .view-list .card-footer {
-        display: none;
-    }
-
-    .view-list .component-description {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    .component-img {
-        height: 200px;
-        object-fit: cover;
-    }
-
-    @media (max-width: 768px) {
-        .col-component {
-            width: 100% !important;
-        }
-
-        .view-list .component-img {
-            width: 150px !important;
-        }
-    }
-
-    /* ── Low Stock Cart Box ── */
-    .low-stock-cart {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        width: 320px;
-        border-radius: 16px;
-        background: rgba(18, 10, 36, 0.92);
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(231, 76, 60, 0.45);
-        box-shadow: 0 8px 40px rgba(231, 76, 60, 0.25), 0 2px 12px rgba(0, 0, 0, 0.5);
-        z-index: 1050;
-        overflow: hidden;
-        transition: box-shadow 0.3s ease;
-    }
-
-    .low-stock-cart:hover {
-        box-shadow: 0 12px 50px rgba(231, 76, 60, 0.4), 0 2px 16px rgba(0, 0, 0, 0.6);
-    }
-
-    .low-stock-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 12px 16px;
-        cursor: pointer;
-        background: linear-gradient(135deg, rgba(158, 42, 90, 0.3), rgba(231, 76, 60, 0.25));
-        border-bottom: 1px solid rgba(231, 76, 60, 0.3);
-        color: #f8d7da;
-        font-weight: 600;
-        font-size: 0.9rem;
-        user-select: none;
-        transition: background 0.2s ease;
-    }
-
-    .low-stock-header:hover {
-        background: linear-gradient(135deg, rgba(158, 42, 90, 0.45), rgba(231, 76, 60, 0.38));
-    }
-
-    .low-stock-badge {
-        background: rgba(231, 76, 60, 0.85) !important;
-        color: #fff !important;
-        font-size: 0.75rem;
-        padding: 3px 8px !important;
-        border-radius: 999px !important;
-    }
-
-    #cartChevron {
-        font-size: 0.8rem;
-        transition: transform 0.3s ease;
-    }
-
-    .cart-collapsed #cartChevron {
-        transform: rotate(180deg);
-    }
-
-    .low-stock-body {
-        max-height: 280px;
-        overflow-y: auto;
-        transition: max-height 0.35s ease, opacity 0.3s ease;
-        opacity: 1;
-    }
-
-    .cart-collapsed .low-stock-body {
-        max-height: 0;
-        opacity: 0;
-    }
-
-    .low-stock-list {
-        list-style: none;
-        margin: 0;
-        padding: 8px 0;
-    }
-
-    .low-stock-item {
-        border-bottom: 1px solid rgba(74, 58, 122, 0.15);
-    }
-
-    .low-stock-item:last-child {
-        border-bottom: none;
-    }
-
-    .low-stock-link {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 9px 16px;
-        text-decoration: none;
-        transition: background 0.2s ease;
-    }
-
-    .stock-zero .low-stock-link:hover {
-        background: rgba(231, 76, 60, 0.12);
-    }
-
-    .stock-low .low-stock-link:hover {
-        background: rgba(245, 158, 11, 0.10);
-    }
-
-    .stock-warn .low-stock-link:hover {
-        background: rgba(234, 179, 8, 0.08);
-    }
-
-    .item-name {
-        font-size: 0.84rem;
-        font-weight: 500;
-        color: #e2e8f0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 170px;
-    }
-
-    .item-qty {
-        font-size: 0.78rem;
-        font-weight: 600;
-        white-space: nowrap;
-        border-radius: 8px;
-        padding: 3px 8px;
-    }
-
-    .qty-zero {
-        color: #ff6b6b;
-        background: rgba(231, 76, 60, 0.15);
-        border: 1px solid rgba(231, 76, 60, 0.35);
-    }
-
-    .qty-low {
-        color: #ffa94d;
-        background: rgba(245, 158, 11, 0.12);
-        border: 1px solid rgba(245, 158, 11, 0.35);
-    }
-
-    .qty-warn {
-        color: #ffe066;
-        background: rgba(234, 179, 8, 0.1);
-        border: 1px solid rgba(234, 179, 8, 0.3);
-    }
-
-    .low-stock-body::-webkit-scrollbar {
-        width: 5px;
-    }
-
-    .low-stock-body::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .low-stock-body::-webkit-scrollbar-thumb {
-        background: rgba(158, 42, 90, 0.5);
-        border-radius: 4px;
-    }
-
-    @media (max-width: 576px) {
-        .low-stock-cart {
-            width: calc(100vw - 32px);
-            right: 16px;
-            bottom: 16px;
-        }
+    /* ── Responsive ── */
+    @media (max-width:768px) {
+        .dash-hero { padding:1.5rem; }
+        .dash-title { font-size:1.4rem; }
+        .stat-card { padding:1rem; }
+        .stat-card__value { font-size:1.25rem; }
+        .comp-card__img { width:52px;height:52px; }
     }
 </style>
-
-<script>
-    // Load saved preferences
-    const savedView = localStorage.getItem('viewMode') || 'grid';
-    const savedSize = localStorage.getItem('cardSize') || 'medium';
-
-    function switchView(viewType) {
-        const container = document.getElementById('componentsContainer');
-        const gridBtn = document.getElementById('gridViewBtn');
-        const listBtn = document.getElementById('listViewBtn');
-        const sizeControl = document.getElementById('cardSizeControl');
-
-        if (viewType === 'grid') {
-            container.classList.remove('view-list');
-            gridBtn.classList.add('active');
-            listBtn.classList.remove('active');
-            sizeControl.style.display = 'block';
-        } else {
-            container.classList.add('view-list');
-            listBtn.classList.add('active');
-            gridBtn.classList.remove('active');
-            sizeControl.style.display = 'none';
-        }
-
-        localStorage.setItem('viewMode', viewType);
-    }
-
-    function setCardSize(size) {
-        const container = document.getElementById('componentsContainer');
-        container.classList.remove('card-size-small', 'card-size-medium', 'card-size-large');
-        container.classList.add('card-size-' + size);
-        localStorage.setItem('cardSize', size);
-    }
-
-    // Initialize view on page load
-    document.addEventListener('DOMContentLoaded', function () {
-        switchView(savedView);
-        setCardSize(savedSize);
-        // Restore cart collapsed state
-        if (localStorage.getItem('stockCartCollapsed') === 'true') {
-            const cart = document.getElementById('lowStockCart');
-            if (cart) cart.classList.add('cart-collapsed');
-        }
-    });
-
-    function toggleStockCart() {
-        const cart = document.getElementById('lowStockCart');
-        if (!cart) return;
-        const collapsed = cart.classList.toggle('cart-collapsed');
-        localStorage.setItem('stockCartCollapsed', collapsed);
-    }
-</script>
-
 {% endblock %}

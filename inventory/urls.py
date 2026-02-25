@@ -24,4 +24,8 @@ urlpatterns = [
     path('beneficiary/<int:pk>/', views.beneficiary_detail, name='beneficiary_detail'),
     path('beneficiary/<int:pk>/edit/', views.edit_beneficiary, name='edit_beneficiary'),
     path('beneficiary/<int:pk>/delete/', views.delete_beneficiary, name='delete_beneficiary'),
+    path('component/<int:pk>/sell/', views.sell_component, name='sell_component'),
+    path('sale/<int:pk>/mark_paid/', views.mark_sale_paid, name='mark_sale_paid'),
+    path('components/', views.component_list, name='component_list'),
+    path('sales/', views.sale_list, name='sale_list'),
 ]
