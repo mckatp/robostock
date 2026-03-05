@@ -49,7 +49,14 @@
                     <span class="badge bg-{{ component.quantity|yesno:'success,danger' }} rounded-pill px-3">
                         Qty: {{ component.quantity }}
                     </span>
-                    <a href="{% url 'component_detail' component.pk %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">View</a>
+                    <div class="d-flex gap-1">
+                        <a href="{% url 'component_detail' component.pk %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">View</a>
+                        {% if user.is_staff %}
+                        <a href="{% url 'component_detail' component.pk %}?restock=1" class="btn btn-sm btn-warning rounded-pill px-2" title="Quick Restock">
+                            <i class="fas fa-plus"></i>
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

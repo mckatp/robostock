@@ -63,11 +63,12 @@ class CheckoutForm(forms.ModelForm):
 class ComponentForm(forms.ModelForm):
     class Meta:
         model = Component
-        fields = ['serial_number', 'name', 'category', 'box_number', 'quantity', 'image', 'description']
+        fields = ['serial_number', 'name', 'category', 'component_type', 'box_number', 'quantity', 'image', 'description']
         widgets = {
             'serial_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., SN12345'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Ultrasonic Sensor HC-SR04'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
+            'component_type': forms.Select(attrs={'class': 'form-select'}),
             'box_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Box A1 or Shelf 3'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'placeholder': '0'}),
             'image': forms.FileInput(attrs={'class': 'form-control'}),

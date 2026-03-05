@@ -20,6 +20,11 @@ class Component(models.Model):
     quantity = models.IntegerField(default=0)
     location = models.CharField(max_length=100) # Keep for general location or legacy
     image = models.ImageField(upload_to='components/', blank=True, null=True)
+    TYPE_CHOICES = [
+        ('GENERAL', 'General Component'),
+        ('KIT', 'General Kit'),
+    ]
+    component_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='GENERAL')
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):

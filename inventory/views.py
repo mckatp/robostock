@@ -37,13 +37,15 @@ def dashboard(request):
             'total_components': components.count(),
         })
 
-    low_stock_components = Component.objects.filter(quantity__lte=5).order_by('quantity', 'name')
+    low_stock_components = Component.objects.filter(
+        Q(component_type='GENERAL', quantity__lte=5) | 
+        Q(component_type='KIT', quantity__lte=1)
+    ).order_by('quantity', 'name')
 
     # Limit to latest 4 items for dashboard summary
     latest_components = components.order_by('-last_updated')[:4]
     latest_sales = Sale.objects.all().order_by('-sale_time')[:4]
 
-    # Summary statistics
     from django.db.models import Sum, Count
     total_components = Component.objects.count()
     total_revenue = Sale.objects.filter(is_paid=True).aggregate(total=Sum('total_price'))['total'] or 0
@@ -51,12 +53,17 @@ def dashboard(request):
     low_stock_count = low_stock_components.count()
     unpaid_sales = Sale.objects.filter(is_paid=False).aggregate(total=Sum('total_price'))['total'] or 0
 
+    total_kits = Component.objects.filter(component_type='KIT').count()
+    recent_kits = Component.objects.filter(component_type='KIT').order_by('-last_updated')[:4]
+
     context = {
         'components': latest_components,
+        'kits': recent_kits,
         'query': query,
         'low_stock_components': low_stock_components,
         'sales': latest_sales,
         'total_components': total_components,
+        'total_kits': total_kits,
         'total_revenue': total_revenue,
         'active_checkouts': active_checkouts,
         'low_stock_count': low_stock_count,
@@ -84,6 +91,14 @@ def add_component(request):
             component = form.save()
             messages.success(request, f"Component '{component.name}' created successfully.")
             return redirect('component_detail', pk=component.pk)
+        else:
+            # Check if error is due to serial number uniqueness
+            if 'serial_number' in form.errors:
+                sn = request.POST.get('serial_number')
+                existing = Component.objects.filter(serial_number=sn).first()
+                if existing:
+                    messages.info(request, f"A component with serial number '{sn}' already exists ({existing.name}). You can restock it below.")
+                    return redirect('component_detail', pk=existing.pk)
     else:
         form = ComponentForm()
     return render(request, 'inventory/component_form.html', {'form': form, 'title': 'Add Component'})
@@ -473,6 +488,9 @@ def delete_user(request, pk):
 @login_required
 def sell_component(request, pk):
     component = get_object_or_404(Component, pk=pk)
+    if component.component_type == 'KIT':
+        messages.error(request, "General Kits cannot be sold. They are for borrowing only.")
+        return redirect('component_detail', pk=pk)
     if request.method == 'POST':
         form = SellForm(request.POST, component=component)
         if form.is_valid():
@@ -531,6 +549,23 @@ RoboStock Lab Management
         'current_date': timezone.now()
     }
     return render(request, 'inventory/sell_form.html', context)
+
+@login_required
+@user_passes_test(is_admin_or_staff)
+@require_POST
+def restock_component(request, pk):
+    component = get_object_or_404(Component, pk=pk)
+    try:
+        qty = int(request.POST.get('quantity', 0))
+        if qty <= 0:
+            messages.error(request, "Please enter a valid quantity greater than 0.")
+        else:
+            component.quantity += qty
+            component.save()
+            messages.success(request, f"Restocked {qty} units of {component.name}. New quantity: {component.quantity}")
+    except (ValueError, TypeError):
+        messages.error(request, "Invalid quantity entered.")
+    return redirect('component_detail', pk=pk)
 
 @login_required
 @require_POST

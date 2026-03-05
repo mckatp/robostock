@@ -38,6 +38,18 @@
             </div>
         </div>
     </div>
+    <!-- Total Kits -->
+    <div class="col-6 col-lg-3">
+        <div class="stat-card stat-card--kits">
+            <div class="stat-card__icon">
+                <i class="fas fa-toolbox"></i>
+            </div>
+            <div class="stat-card__body">
+                <div class="stat-card__value">{{ total_kits }}</div>
+                <div class="stat-card__label">General Kits</div>
+            </div>
+        </div>
+    </div>
     <!-- Revenue -->
     <div class="col-6 col-lg-3">
         <div class="stat-card stat-card--revenue">
@@ -46,7 +58,7 @@
             </div>
             <div class="stat-card__body">
                 <div class="stat-card__value">₹{{ total_revenue }}</div>
-                <div class="stat-card__label">Revenue Collected</div>
+                <div class="stat-card__label">Revenue</div>
             </div>
         </div>
     </div>
@@ -58,7 +70,7 @@
             </div>
             <div class="stat-card__body">
                 <div class="stat-card__value">{{ active_checkouts }}</div>
-                <div class="stat-card__label">Active Checkouts</div>
+                <div class="stat-card__label">Checkouts</div>
             </div>
         </div>
     </div>
@@ -70,7 +82,7 @@
             </div>
             <div class="stat-card__body">
                 <div class="stat-card__value">{{ low_stock_count }}</div>
-                <div class="stat-card__label">Low Stock Items</div>
+                <div class="stat-card__label">Low Stock</div>
                 {% if unpaid_sales %}
                 <div class="stat-card__sub text-warning"><i class="fas fa-clock me-1"></i>₹{{ unpaid_sales }} unpaid</div>
                 {% endif %}
@@ -132,6 +144,59 @@
                     <i class="fas fa-box-open"></i>
                     <p>No components yet. Start by adding your first item!</p>
                     <a href="{% url 'add_component' %}" class="btn btn-primary btn-sm">Add Component</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- ──── General Kits Section ──── -->
+        <div class="section-header mt-5">
+            <div>
+                <h2 class="section-title"><i class="fas fa-toolbox me-2 text-primary"></i>General Kits</h2>
+                <p class="section-desc text-muted mb-0">Borrowable component sets and kits.</p>
+            </div>
+            <a href="{% url 'component_list' %}?type=KIT" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                View All <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        <div class="row g-3 mb-4">
+            {% for kit in kits %}
+            <div class="col-md-6">
+                <a href="{% url 'component_detail' kit.pk %}" class="text-decoration-none">
+                    <div class="comp-card">
+                        <div class="comp-card__img">
+                            {% if kit.image %}
+                            <img src="{{ kit.image.url }}" alt="{{ kit.name }}">
+                            {% else %}
+                            <div class="comp-card__placeholder">
+                                <i class="fas fa-toolbox"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="comp-card__body">
+                            <h5 class="comp-card__name">{{ kit.name }}</h5>
+                            <span class="comp-card__cat">{{ kit.category.name }}</span>
+                            <div class="comp-card__footer">
+                                <span class="comp-card__qty {% if kit.quantity == 0 %}qty-zero{% elif kit.quantity <= 1 %}qty-low{% else %}qty-ok{% endif %}">
+                                    {% if kit.quantity == 0 %}
+                                    <i class="fas fa-times-circle me-1"></i>Out of stock
+                                    {% else %}
+                                    <i class="fas fa-cubes me-1"></i>{{ kit.quantity }} available
+                                    {% endif %}
+                                </span>
+                                <span class="comp-card__date text-muted">{{ kit.last_updated|date:"M d" }}</span>
+                            </div>
+                        </div>
+                        <div class="comp-card__arrow"><i class="fas fa-chevron-right"></i></div>
+                    </div>
+                </a>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="empty-state small-empty">
+                    <i class="fas fa-toolbox"></i>
+                    <p>No General Kits added yet.</p>
                 </div>
             </div>
             {% endfor %}
@@ -236,7 +301,8 @@
     }
     .stat-card--components::after { background:linear-gradient(135deg,#7c3aed,#a78bfa); }
     .stat-card--revenue::after    { background:linear-gradient(135deg,#10b981,#34d399); }
-    .stat-card--checkouts::after  { background:linear-gradient(135deg,#3b82f6,#60a5fa); }
+    .stat-card--kits::after       { background:linear-gradient(135deg,#3b82f6,#60a5fa); }
+    .stat-card--checkouts::after  { background:linear-gradient(135deg,#f59e0b,#fbbf24); }
     .stat-card--alerts::after     { background:linear-gradient(135deg,#ef4444,#f87171); }
 
     .stat-card__icon {
@@ -246,7 +312,8 @@
     }
     .stat-card--components .stat-card__icon { background:rgba(124,58,237,0.15);color:#a78bfa; }
     .stat-card--revenue .stat-card__icon    { background:rgba(16,185,129,0.15);color:#34d399; }
-    .stat-card--checkouts .stat-card__icon  { background:rgba(59,130,246,0.15);color:#60a5fa; }
+    .stat-card--kits .stat-card__icon       { background:rgba(59,130,246,0.15);color:#60a5fa; }
+    .stat-card--checkouts .stat-card__icon  { background:rgba(245,158,11,0.15);color:#fbbf24; }
     .stat-card--alerts .stat-card__icon     { background:rgba(239,68,68,0.15);color:#f87171; }
 
     .stat-card__value { font-size:1.5rem;font-weight:700;line-height:1.2; }

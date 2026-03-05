@@ -28,4 +28,5 @@ urlpatterns = [
     path('sale/<int:pk>/mark_paid/', views.mark_sale_paid, name='mark_sale_paid'),
     path('components/', views.component_list, name='component_list'),
     path('sales/', views.sale_list, name='sale_list'),
+    path('component/<int:pk>/restock/', views.restock_component, name='restock_component'),
 ]
