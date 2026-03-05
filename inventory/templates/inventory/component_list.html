@@ -1,0 +1,71 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}All Components - RoboStock{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-boxes me-2"></i>All Components</h1>
+    <div class="d-flex gap-2">
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+        <a href="{% url 'add_component' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Add Component
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <form method="GET" action="{% url 'component_list' %}" class="row g-3">
+            <div class="col-md-10">
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-search"></i></span>
+                    <input type="text" name="q" class="form-control border-start-0" placeholder="Search by name, serial, category..." value="{{ query|default:'' }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    {% for component in components %}
+    <div class="col-md-4 col-lg-3 mb-4">
+        <div class="card h-100 component-card shadow-sm border-0">
+            {% if component.image %}
+            <img src="{{ component.image.url }}" class="card-img-top" alt="{{ component.name }}" style="height: 180px; object-fit: cover;">
+            {% else %}
+            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                <i class="fas fa-microchip fa-3x text-muted opacity-25"></i>
+            </div>
+            {% endif %}
+            <div class="card-body">
+                <h5 class="card-title fw-bold text-truncate">{{ component.name }}</h5>
+                <p class="text-muted small mb-2"><span class="badge bg-secondary">{{ component.category.name }}</span></p>
+                <div class="d-flex justify-content-between align-items-center mb-0 mt-3">
+                    <span class="badge bg-{{ component.quantity|yesno:'success,danger' }} rounded-pill px-3">
+                        Qty: {{ component.quantity }}
+                    </span>
+                    <div class="d-flex gap-1">
+                        <a href="{% url 'component_detail' component.pk %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">View</a>
+                        {% if user.is_staff %}
+                        <a href="{% url 'component_detail' component.pk %}?restock=1" class="btn btn-sm btn-warning rounded-pill px-2" title="Quick Restock">
+                            <i class="fas fa-plus"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <p class="text-muted">No components found matching your criteria.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

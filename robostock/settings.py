@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
 
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 # Set USE_HTTPS=True in .env only when your server has an SSL certificate.
 # On a plain HTTP LAN deployment this must be False, even if DEBUG=False.

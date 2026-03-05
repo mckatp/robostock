@@ -1,0 +1,157 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Lab Inventory - RoboStock{% endblock %}
+
+{% block content %}
+
+<!-- ══════ Public Hero ══════ -->
+<div class="pub-hero mb-4">
+    <div class="row align-items-center">
+        <div class="col-lg-7">
+            <h1 class="pub-hero__title">
+                <i class="fas fa-flask me-2"></i>Lab Inventory Catalog
+            </h1>
+            <p class="pub-hero__sub">Browse {{ total_components }} component{{ total_components|pluralize }} available in the robotics lab.</p>
+        </div>
+        <div class="col-lg-5">
+            <form method="GET" action="{% url 'dashboard' %}" class="pub-search">
+                <div class="input-group">
+                    <span class="input-group-text pub-search__icon"><i class="fas fa-search"></i></span>
+                    <input type="text" name="q" class="form-control pub-search__input" placeholder="Search by name, category, serial..." value="{{ query|default:'' }}" autocomplete="off">
+                    <button class="btn pub-search__btn" type="submit">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if query %}
+<div class="mb-3 d-flex align-items-center gap-2">
+    <span class="text-muted">Showing results for "<strong class="text-light">{{ query }}</strong>"</span>
+    <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+        <i class="fas fa-times me-1"></i>Clear
+    </a>
+</div>
+{% endif %}
+
+<!-- ══════ Component Grid ══════ -->
+<div class="row g-3">
+    {% for component in components %}
+    <div class="col-sm-6 col-md-4 col-lg-3">
+        <div class="pub-card">
+            <div class="pub-card__img">
+                {% if component.image %}
+                <img src="{{ component.image.url }}" alt="{{ component.name }}">
+                {% else %}
+                <div class="pub-card__placeholder">
+                    <i class="fas fa-microchip"></i>
+                </div>
+                {% endif %}
+            </div>
+            <div class="pub-card__body">
+                <h5 class="pub-card__name">{{ component.name }}</h5>
+                <div class="pub-card__cat">{{ component.category.name }}</div>
+                <div class="pub-card__stock">
+                    <span class="pub-card__qty {% if component.quantity == 0 %}qty--zero{% elif component.quantity <= 5 %}qty--low{% else %}qty--ok{% endif %}">
+                        {% if component.quantity == 0 %}
+                        <i class="fas fa-times-circle me-1"></i>Out of stock
+                        {% else %}
+                        <i class="fas fa-cubes me-1"></i>{{ component.quantity }} available
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="pub-empty">
+            <i class="fas fa-search"></i>
+            {% if query %}
+            <p>No components match "<strong>{{ query }}</strong>".</p>
+            <a href="{% url 'dashboard' %}" class="btn btn-sm btn-primary">Clear Search</a>
+            {% else %}
+            <p>No components in the inventory yet.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+    /* ── Hero ── */
+    .pub-hero {
+        background: linear-gradient(135deg, rgba(74,58,122,0.25), rgba(158,42,90,0.18));
+        border: 1px solid rgba(158,42,90,0.2);
+        border-radius: 20px;
+        padding: 2rem 2.5rem;
+    }
+    .pub-hero__title { font-size:1.7rem;font-weight:700; }
+    .pub-hero__sub   { color:var(--text-secondary);margin:0; }
+
+    /* ── Search ── */
+    .pub-search .input-group {
+        border-radius:14px;overflow:hidden;
+        box-shadow:0 4px 16px rgba(0,0,0,0.2);
+    }
+    .pub-search__icon {
+        background:rgba(74,58,122,0.25)!important;
+        border:1px solid rgba(74,58,122,0.3)!important;border-right:none!important;
+        color:var(--accent-red);
+    }
+    .pub-search__input {
+        border-left:none!important;border-right:none!important;
+        background:rgba(26,15,46,0.6)!important;
+        border-top:1px solid rgba(74,58,122,0.3)!important;
+        border-bottom:1px solid rgba(74,58,122,0.3)!important;
+    }
+    .pub-search__input:focus { box-shadow:none!important;background:rgba(26,15,46,0.8)!important; }
+    .pub-search__btn {
+        background:linear-gradient(135deg,var(--accent-purple),var(--accent-red))!important;
+        border:1px solid rgba(158,42,90,0.3)!important;border-left:none!important;
+        color:#fff!important;font-weight:600;padding:.5rem 1.4rem;
+    }
+
+    /* ── Cards ── */
+    .pub-card {
+        border-radius:16px;overflow:hidden;
+        background:var(--card-bg);backdrop-filter:blur(10px);
+        border:1px solid rgba(74,58,122,0.2);
+        transition:all .3s ease;height:100%;
+    }
+    .pub-card:hover {
+        transform:translateY(-4px);
+        box-shadow:0 12px 35px rgba(158,42,90,0.25);
+        border-color:rgba(158,42,90,0.35);
+    }
+    .pub-card__img { height:160px;overflow:hidden;position:relative; }
+    .pub-card__img img { width:100%;height:100%;object-fit:cover;transition:transform .4s ease; }
+    .pub-card:hover .pub-card__img img { transform:scale(1.06); }
+    .pub-card__placeholder {
+        width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+        background:linear-gradient(135deg,rgba(74,58,122,0.3),rgba(158,42,90,0.15));
+        color:var(--text-secondary);font-size:2.5rem;opacity:.3;
+    }
+    .pub-card__body { padding:1rem 1.15rem; }
+    .pub-card__name { font-size:.95rem;font-weight:600;margin:0 0 .25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .pub-card__cat  { font-size:.72rem;color:var(--accent-red);text-transform:uppercase;letter-spacing:.5px;font-weight:500;margin-bottom:.6rem; }
+    .pub-card__qty  { font-size:.75rem;font-weight:600;padding:3px 10px;border-radius:8px;display:inline-block; }
+
+    .qty--ok   { color:#34d399;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25); }
+    .qty--low  { color:#fbbf24;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25); }
+    .qty--zero { color:#f87171;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25); }
+
+    /* ── Empty State ── */
+    .pub-empty {
+        text-align:center;padding:4rem 2rem;border-radius:16px;
+        background:var(--card-bg);border:1px dashed rgba(74,58,122,0.25);
+        color:var(--text-secondary);
+    }
+    .pub-empty i { font-size:3rem;opacity:.2;display:block;margin-bottom:1rem; }
+
+    @media (max-width:768px) {
+        .pub-hero { padding:1.5rem; }
+        .pub-hero__title { font-size:1.3rem; }
+    }
+</style>
+{% endblock %}

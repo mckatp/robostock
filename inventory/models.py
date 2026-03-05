@@ -20,6 +20,11 @@ class Component(models.Model):
     quantity = models.IntegerField(default=0)
     location = models.CharField(max_length=100) # Keep for general location or legacy
     image = models.ImageField(upload_to='components/', blank=True, null=True)
+    TYPE_CHOICES = [
+        ('GENERAL', 'General Component'),
+        ('KIT', 'General Kit'),
+    ]
+    component_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='GENERAL')
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -73,6 +78,21 @@ class Transaction(models.Model):
     checkout_time = models.DateTimeField(auto_now_add=True)
     return_time = models.DateTimeField(null=True, blank=True)
     quantity_taken = models.IntegerField(default=1)
+    notes = models.TextField(blank=True, null=True, help_text="Optional description or notes")
 
     def __str__(self):
         return f"{self.borrower.name} - {self.component.name}"
+
+class Sale(models.Model):
+    component = models.ForeignKey(Component, on_delete=models.CASCADE)
+    buyer = models.ForeignKey(Beneficiary, on_delete=models.CASCADE, null=True)
+    authorized_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True)
+    sale_time = models.DateTimeField(auto_now_add=True)
+    quantity_sold = models.IntegerField(default=1)
+    price_per_unit = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    is_paid = models.BooleanField(default=False)
+    notes = models.TextField(blank=True, null=True, help_text="Optional description or notes")
+
+    def __str__(self):
+        return f"{self.buyer.name if self.buyer else 'Unknown'} - {self.component.name}"

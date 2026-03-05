@@ -1,6 +1,6 @@
 from django import forms
 from django.db.models import Q
-from .models import Transaction, Component, Beneficiary
+from .models import Transaction, Component, Beneficiary, Sale
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 
@@ -13,10 +13,11 @@ class CheckoutForm(forms.ModelForm):
 
     class Meta:
         model = Transaction
-        fields = ['borrower', 'quantity_taken']
+        fields = ['borrower', 'quantity_taken', 'notes']
         widgets = {
             'borrower': forms.Select(attrs={'class': 'form-select'}),
             'quantity_taken': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Optional notes or description...'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -62,11 +63,12 @@ class CheckoutForm(forms.ModelForm):
 class ComponentForm(forms.ModelForm):
     class Meta:
         model = Component
-        fields = ['serial_number', 'name', 'category', 'box_number', 'quantity', 'image', 'description']
+        fields = ['serial_number', 'name', 'category', 'component_type', 'box_number', 'quantity', 'image', 'description']
         widgets = {
             'serial_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., SN12345'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Ultrasonic Sensor HC-SR04'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
+            'component_type': forms.Select(attrs={'class': 'form-select'}),
             'box_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Box A1 or Shelf 3'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'placeholder': '0'}),
             'image': forms.FileInput(attrs={'class': 'form-control'}),
@@ -184,5 +186,61 @@ class EnhancedUserCreationForm(UserCreationForm):
             if 'class' not in self.fields[field].widget.attrs:
                 self.fields[field].widget.attrs['class'] = 'form-control'
             else:
-                if 'form-control' not in self.fields[field].widget.attrs['class']:
                     self.fields[field].widget.attrs['class'] += ' form-control'
+
+class SellForm(forms.ModelForm):
+    buyer_id = forms.CharField(
+        required=False, 
+        label="Buyer ID (Student/Employee)",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter ID to search...'})
+    )
+
+    class Meta:
+        model = Sale
+        fields = ['buyer', 'quantity_sold', 'price_per_unit', 'is_paid', 'notes']
+        widgets = {
+            'buyer': forms.Select(attrs={'class': 'form-select'}),
+            'quantity_sold': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+            'price_per_unit': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': 0}),
+            'is_paid': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Optional notes or description...'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.component = kwargs.pop('component', None)
+        super().__init__(*args, **kwargs)
+        self.fields['buyer'].queryset = Beneficiary.objects.filter(category__in=['Intern', 'Other'])
+        self.fields['buyer'].required = False
+        self.fields['buyer'].label = "Select Buyer (Intern/Other)"
+        self.fields['buyer'].empty_label = "-- Select Buyer (Intern/Other) --"
+        
+        if self.component:
+            self.fields['quantity_sold'].widget.attrs['max'] = self.component.quantity
+
+    def clean(self):
+        cleaned_data = super().clean()
+        buyer_id = cleaned_data.get('buyer_id')
+        buyer = cleaned_data.get('buyer')
+
+        if not buyer_id and not buyer:
+            raise forms.ValidationError("Please provide either a Buyer ID or select a buyer from the list.")
+
+        if buyer_id:
+            beneficiary = Beneficiary.objects.filter(
+                Q(employee_id=buyer_id) | Q(student_id=buyer_id)
+            ).first()
+            
+            if beneficiary:
+                cleaned_data['buyer'] = beneficiary
+            else:
+                if not buyer:
+                    self.add_error('buyer_id', "No beneficiary found with this ID.")
+        
+        return cleaned_data
+
+    def clean_quantity_sold(self):
+        quantity = self.cleaned_data['quantity_sold']
+        if self.component and quantity > self.component.quantity:
+            raise forms.ValidationError(f"Only {self.component.quantity} items available to sell.")
+        return quantity
+
