@@ -104,7 +104,7 @@ robostock/
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/<your-username>/robostock.git
+   git clone https://github.com/muhasin-code/robostock.git
    cd robostock
    ```
 
