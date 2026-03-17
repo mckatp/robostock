@@ -42,6 +42,15 @@ ENV/
 *.swp
 *.swo
 
+# Runtime
+gunicorn.ctl
+
+# Backups (keep scripts, ignore dumps)
+backups/*.sql.gz
+
+# Logs
+*.log
+
 # OS
 .DS_Store
 Thumbs.db
