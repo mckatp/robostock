@@ -23,6 +23,7 @@
                         <th>Checked Out</th>
                         <th>Authorized By</th>
                         <th>Notes</th>
+                        <th class="pe-4 text-end">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -57,6 +58,12 @@
                             {% else %}
                             <span class="text-muted small">—</span>
                             {% endif %}
+                        </td>
+                        <td class="pe-4 text-end">
+                            <a href="{% url 'return_component' tx.pk %}?next={{ request.path|urlencode }}"
+                                class="btn btn-sm btn-warning rounded-pill px-3">
+                                <i class="fas fa-undo me-1"></i>Return
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}

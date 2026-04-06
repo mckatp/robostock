@@ -65,7 +65,7 @@
     <!-- Active Checkouts -->
     <div class="col-6 col-lg-3">
         <a href="{% url 'checkout_list' %}" class="text-decoration-none">
-            <div class="stat-card stat-card--checkouts" style="cursor:pointer;">
+            <div class="stat-card stat-card--checkouts">
                 <div class="stat-card__icon">
                     <i class="fas fa-hand-holding"></i>
                 </div>
@@ -225,8 +225,11 @@
             <div class="sale-item">
                 <div class="sale-item__left">
                     <div class="sale-item__icon {% if sale.is_paid %}sale-paid{% else %}sale-unpaid{% endif %}">
-                        {% if sale.is_paid %}<i class="fas fa-check"></i>{% else %}<i class="fas fa-clock"></i>{% endif
-                        %}
+                        {% if sale.is_paid %}
+                            <i class="fas fa-check"></i>
+                        {% else %}
+                            <i class="fas fa-clock"></i>
+                        {% endif %}
                     </div>
                     <div>
                         <div class="sale-item__name">{{ sale.component.name|truncatechars:22 }}</div>

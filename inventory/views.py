@@ -232,9 +232,17 @@ RoboStock Lab Management
                 print(f"Error sending return email: {e}")
 
         messages.success(request, f"Returned {transaction.quantity_taken} of {component.name} from {transaction.borrower.name}")
+        
+        # Support redirecting back to where the user came from
+        next_url = request.GET.get('next')
+        if next_url:
+            return redirect(next_url)
         return redirect('component_detail', pk=component.pk)
     
-    return render(request, 'inventory/return_confirm.html', {'transaction': transaction})
+    return render(request, 'inventory/return_confirm.html', {
+        'transaction': transaction,
+        'next': request.GET.get('next', '')
+    })
 
 @login_required
 def beneficiary_list(request):
