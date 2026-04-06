@@ -54,3 +54,6 @@ backups/*.sql.gz
 # OS
 .DS_Store
 Thumbs.db
+
+# Backup
+backup.md

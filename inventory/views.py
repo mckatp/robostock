@@ -599,3 +599,14 @@ def sale_list(request):
     sales = Sale.objects.all().order_by('-sale_time')
     return render(request, 'inventory/sale_list.html', {'sales': sales})
 
+
+@login_required
+def checkout_list(request):
+    checkouts = (
+        Transaction.objects
+        .filter(return_time__isnull=True)
+        .select_related('component', 'borrower', 'authorized_by')
+        .order_by('-checkout_time')
+    )
+    return render(request, 'inventory/checkout_list.html', {'checkouts': checkouts})
+

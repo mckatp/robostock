@@ -1,0 +1,74 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Active Checkouts - RoboStock{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-hand-holding me-2"></i>Active Checkouts</h1>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+    </a>
+</div>
+
+<div class="card shadow border-0 overflow-hidden">
+    <div class="card-body p-0">
+        {% if checkouts %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Item</th>
+                        <th>Beneficiary</th>
+                        <th>Qty</th>
+                        <th>Checked Out</th>
+                        <th>Authorized By</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in checkouts %}
+                    <tr>
+                        <td class="ps-4">
+                            <a href="{% url 'component_detail' tx.component.pk %}"
+                                class="fw-bold text-decoration-none text-primary">
+                                {{ tx.component.name }}
+                            </a>
+                            <div class="small text-muted">{{ tx.component.serial_number }}</div>
+                        </td>
+                        <td>
+                            {% if tx.borrower %}
+                            <a href="{% url 'beneficiary_detail' tx.borrower.pk %}" class="text-decoration-none">
+                                <div class="fw-bold">{{ tx.borrower.name }}</div>
+                                <div class="small text-muted">{{ tx.borrower.category }}</div>
+                            </a>
+                            {% else %}
+                            <span class="text-muted">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ tx.quantity_taken }}</span></td>
+                        <td>
+                            <div>{{ tx.checkout_time|date:"M d, Y" }}</div>
+                            <small class="text-muted">{{ tx.checkout_time|date:"H:i" }}</small>
+                        </td>
+                        <td>{{ tx.authorized_by.get_full_name|default:tx.authorized_by.username }}</td>
+                        <td>
+                            {% if tx.notes %}
+                            <span class="text-muted small">{{ tx.notes|truncatechars:30 }}</span>
+                            {% else %}
+                            <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-5 text-center text-muted">
+            <i class="fas fa-check-circle fa-3x mb-3 opacity-25"></i>
+            <p>No active checkouts — all items have been returned!</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
