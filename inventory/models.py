@@ -83,6 +83,14 @@ class Transaction(models.Model):
     def __str__(self):
         return f"{self.borrower.name} - {self.component.name}"
 
+class KitItem(models.Model):
+    kit = models.ForeignKey(Component, on_delete=models.CASCADE, related_name='items', limit_choices_to={'component_type': 'KIT'})
+    name = models.CharField(max_length=200)
+    quantity = models.IntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.name} (x{self.quantity}) in {self.kit.name}"
+
 class Sale(models.Model):
     component = models.ForeignKey(Component, on_delete=models.CASCADE)
     buyer = models.ForeignKey(Beneficiary, on_delete=models.CASCADE, null=True)

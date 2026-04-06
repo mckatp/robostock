@@ -159,7 +159,7 @@
                 <h2 class="section-title"><i class="fas fa-toolbox me-2 text-primary"></i>General Kits</h2>
                 <p class="section-desc text-muted mb-0">Borrowable component sets and kits.</p>
             </div>
-            <a href="{% url 'component_list' %}?type=KIT" class="btn btn-sm btn-outline-light rounded-pill px-3">
+            <a href="{% url 'kit_list' %}" class="btn btn-sm btn-outline-light rounded-pill px-3">
                 View All <i class="fas fa-arrow-right ms-1"></i>
             </a>
         </div>
@@ -226,9 +226,9 @@
                 <div class="sale-item__left">
                     <div class="sale-item__icon {% if sale.is_paid %}sale-paid{% else %}sale-unpaid{% endif %}">
                         {% if sale.is_paid %}
-                            <i class="fas fa-check"></i>
+                        <i class="fas fa-check"></i>
                         {% else %}
-                            <i class="fas fa-clock"></i>
+                        <i class="fas fa-clock"></i>
                         {% endif %}
                     </div>
                     <div>

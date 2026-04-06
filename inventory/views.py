@@ -1,15 +1,15 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Component, Transaction, Beneficiary, Category, Sale
-from .forms import CheckoutForm, ComponentForm, BeneficiaryForm
+from .models import Component, Transaction, Beneficiary, Category, Sale, KitItem
+from .forms import CheckoutForm, ComponentForm, BeneficiaryForm, KitItemForm
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
-from .forms import UserForm, BeneficiaryProfileForm
+from .forms import UserForm, BeneficiaryProfileForm, KitItemForm
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from django.contrib import messages
 from django.http import JsonResponse
-from .forms import CheckoutForm, ComponentForm, BeneficiaryForm, EnhancedUserCreationForm, SellForm
+from .forms import CheckoutForm, ComponentForm, BeneficiaryForm, EnhancedUserCreationForm, SellForm, KitItemForm
 from django.core.mail import send_mail
 from django.views.decorators.http import require_POST
 
@@ -18,8 +18,10 @@ def is_admin(user):
 
 def dashboard(request):
     query = request.GET.get('q')
+    
+    # Filter base queryset by search query if present
     if query:
-        components = Component.objects.filter(
+        base_qs = Component.objects.filter(
             Q(name__icontains=query) | 
             Q(description__icontains=query) | 
             Q(category__name__icontains=query) |
@@ -27,34 +29,36 @@ def dashboard(request):
             Q(box_number__icontains=query)
         )
     else:
-        components = Component.objects.all()
+        base_qs = Component.objects.all()
 
-    # Public view for logged-out users: just lab stock + search
+    # Public view for logged-out users: just GENERAL stock (Hide Kits)
     if not request.user.is_authenticated:
+        public_components = base_qs.filter(component_type='GENERAL').order_by('name')
         return render(request, 'inventory/public_inventory.html', {
-            'components': components.order_by('name'),
+            'components': public_components,
             'query': query,
-            'total_components': components.count(),
+            'total_components': public_components.count(),
         })
 
-    low_stock_components = Component.objects.filter(
-        Q(component_type='GENERAL', quantity__lte=5) | 
-        Q(component_type='KIT', quantity__lte=1)
-    ).order_by('quantity', 'name')
+    # For logged-in users, separate components and kits
+    components = base_qs.filter(component_type='GENERAL')
+    kits = base_qs.filter(component_type='KIT')
 
-    # Limit to latest 4 items for dashboard summary
+    low_stock_components = Component.objects.filter(component_type='GENERAL', quantity__lte=5).order_by('quantity', 'name')
+
+    # Limit to latest items for dashboard summary
     latest_components = components.order_by('-last_updated')[:4]
     latest_sales = Sale.objects.all().order_by('-sale_time')[:4]
 
-    from django.db.models import Sum, Count
-    total_components = Component.objects.count()
+    from django.db.models import Sum
+    total_components = Component.objects.filter(component_type='GENERAL').count()
+    total_kits = Component.objects.filter(component_type='KIT').count()
     total_revenue = Sale.objects.filter(is_paid=True).aggregate(total=Sum('total_price'))['total'] or 0
     active_checkouts = Transaction.objects.filter(return_time__isnull=True).count()
     low_stock_count = low_stock_components.count()
     unpaid_sales = Sale.objects.filter(is_paid=False).aggregate(total=Sum('total_price'))['total'] or 0
 
-    total_kits = Component.objects.filter(component_type='KIT').count()
-    recent_kits = Component.objects.filter(component_type='KIT').order_by('-last_updated')[:4]
+    recent_kits = kits.order_by('-last_updated')[:4]
 
     context = {
         'components': latest_components,
@@ -75,10 +79,57 @@ def component_detail(request, pk):
     component = get_object_or_404(Component, pk=pk)
     # Get active transactions (not returned yet)
     active_transactions = Transaction.objects.filter(component=component, return_time__isnull=True)
+    
+    # Kit specific logic
+    kit_items = None
+    kit_form = None
+    if component.component_type == 'KIT':
+        kit_items = component.items.all().order_by('name')
+        if request.user.is_authenticated:
+            kit_form = KitItemForm()
+
     return render(request, 'inventory/component_detail.html', {
         'component': component,
-        'active_transactions': active_transactions
+        'active_transactions': active_transactions,
+        'kit_items': kit_items,
+        'kit_form': kit_form
     })
+
+@login_required
+@require_POST
+def add_kit_item(request, pk):
+    kit = get_object_or_404(Component, pk=pk, component_type='KIT')
+    form = KitItemForm(request.POST)
+    if form.is_valid():
+        item = form.save(commit=False)
+        item.kit = kit
+        item.save()
+        messages.success(request, f"Added {item.name} to {kit.name}")
+    else:
+        messages.error(request, "Error adding item to kit.")
+    return redirect('component_detail', pk=pk)
+
+@login_required
+@require_POST
+def update_kit_item_qty(request, item_id):
+    item = get_object_or_404(KitItem, pk=item_id)
+    try:
+        change = int(request.POST.get('change', 0))
+        item.quantity = max(1, item.quantity + change)
+        item.save()
+        return JsonResponse({'status': 'success', 'new_qty': item.quantity})
+    except (ValueError, TypeError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid change'}, status=400)
+
+@login_required
+@require_POST
+def delete_kit_item(request, item_id):
+    item = get_object_or_404(KitItem, pk=item_id)
+    kit_pk = item.kit.pk
+    name = item.name
+    item.delete()
+    messages.success(request, f"Removed {name} from kit.")
+    return redirect('component_detail', pk=kit_pk)
 
 def is_admin_or_staff(user):
     return user.is_superuser or user.is_staff
@@ -593,13 +644,33 @@ def component_list(request):
             Q(category__name__icontains=query) |
             Q(serial_number__icontains=query) |
             Q(box_number__icontains=query)
-        )
+        ).filter(component_type='GENERAL')
     else:
-        components = Component.objects.all().order_by('name')
+        components = Component.objects.filter(component_type='GENERAL').order_by('name')
         
     return render(request, 'inventory/component_list.html', {
         'components': components,
-        'query': query
+        'query': query,
+        'title': 'Inventory Components'
+    })
+
+@login_required
+def kit_list(request):
+    query = request.GET.get('q')
+    if query:
+        kits = Component.objects.filter(
+            Q(name__icontains=query) | 
+            Q(description__icontains=query) | 
+            Q(category__name__icontains=query) |
+            Q(serial_number__icontains=query)
+        ).filter(component_type='KIT')
+    else:
+        kits = Component.objects.filter(component_type='KIT').order_by('name')
+        
+    return render(request, 'inventory/kit_list.html', {
+        'kits': kits,
+        'query': query,
+        'title': 'General Kits'
     })
 
 @login_required

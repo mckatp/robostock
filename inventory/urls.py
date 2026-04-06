@@ -19,6 +19,7 @@ urlpatterns = [
     path('profile/', views.edit_profile, name='edit_profile'),
     path('checkout/self/<int:pk>/', views.checkout_self, name='checkout_self'),
     path('beneficiaries/', views.beneficiary_list, name='beneficiary_list'),
+    path('kits/', views.kit_list, name='kit_list'),
     path('beneficiary/add/', views.add_beneficiary, name='add_beneficiary'),
     path('api/beneficiary/data/<path:employee_id>/', views.get_beneficiary_data, name='get_beneficiary_data'),
     path('beneficiary/<int:pk>/', views.beneficiary_detail, name='beneficiary_detail'),
@@ -30,4 +31,9 @@ urlpatterns = [
     path('sales/', views.sale_list, name='sale_list'),
     path('checkouts/', views.checkout_list, name='checkout_list'),
     path('component/<int:pk>/restock/', views.restock_component, name='restock_component'),
+    
+    # Kit Items
+    path('kit/<int:pk>/add_item/', views.add_kit_item, name='add_kit_item'),
+    path('kit/item/<int:item_id>/update_qty/', views.update_kit_item_qty, name='update_kit_item_qty'),
+    path('kit/item/<int:item_id>/delete/', views.delete_kit_item, name='delete_kit_item'),
 ]

@@ -1,6 +1,6 @@
 from django import forms
 from django.db.models import Q
-from .models import Transaction, Component, Beneficiary, Sale
+from .models import Transaction, Component, Beneficiary, Sale, KitItem
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 
@@ -244,4 +244,13 @@ class SellForm(forms.ModelForm):
         if self.component and quantity > self.component.quantity:
             raise forms.ValidationError(f"Only {self.component.quantity} items available to sell.")
         return quantity
+
+class KitItemForm(forms.ModelForm):
+    class Meta:
+        model = KitItem
+        fields = ['name', 'quantity']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Arduino Uno'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'placeholder': '1'}),
+        }
 
