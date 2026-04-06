@@ -68,6 +68,7 @@ class ComponentForm(forms.ModelForm):
             'serial_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., SN12345'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Ultrasonic Sensor HC-SR04'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
+
             'component_type': forms.Select(attrs={'class': 'form-select'}),
             'box_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Box A1 or Shelf 3'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'placeholder': '0'}),
