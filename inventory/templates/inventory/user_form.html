@@ -14,7 +14,7 @@
 
         <form method="post" id="userForm">
             {% csrf_token %}
-            
+
             <!-- Employee Context Section -->
             <div class="card mb-4 border-0">
                 <div class="card-header bg-transparent py-3">
@@ -23,23 +23,30 @@
                 <div class="card-body p-4">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label for="id_employee_id" class="form-label small fw-bold text-uppercase">Employee ID</label>
+                            <label for="id_employee_id" class="form-label small fw-bold text-uppercase">Employee
+                                ID</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-search"></i></span>
-                                <input type="text" name="employee_id" class="form-control border-start-0" id="id_employee_id" placeholder="Enter ID to autocomplete...">
+                                <span class="input-group-text bg-transparent border-end-0"><i
+                                        class="fas fa-search"></i></span>
+                                <input type="text" name="employee_id" class="form-control border-start-0"
+                                    id="id_employee_id" placeholder="Enter ID to autocomplete...">
                             </div>
                             <div id="autocompleteFeedback" class="form-text mt-2"></div>
                         </div>
                         <div class="col-md-6">
-                            <label for="id_designation" class="form-label small fw-bold text-uppercase">Designation</label>
+                            <label for="id_designation"
+                                class="form-label small fw-bold text-uppercase">Designation</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-briefcase"></i></span>
-                                <input type="text" name="designation" class="form-control border-start-0" id="id_designation" placeholder="e.g., Faculty, Lab Technician">
+                                <span class="input-group-text bg-transparent border-end-0"><i
+                                        class="fas fa-briefcase"></i></span>
+                                <input type="text" name="designation" class="form-control border-start-0"
+                                    id="id_designation" placeholder="Faculty, Lab Technician">
                             </div>
                         </div>
-                        
+
                         <div class="col-md-6">
-                            <label for="id_first_name" class="form-label small fw-bold text-uppercase">First Name</label>
+                            <label for="id_first_name" class="form-label small fw-bold text-uppercase">First
+                                Name</label>
                             {{ form.first_name }}
                         </div>
                         <div class="col-md-6">
@@ -49,8 +56,10 @@
                         <div class="col-12">
                             <label for="id_email" class="form-label small fw-bold text-uppercase">Email Address</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-envelope"></i></span>
-                                <input type="email" name="email" class="form-control border-start-0" id="id_email" placeholder="email@example.com">
+                                <span class="input-group-text bg-transparent border-end-0"><i
+                                        class="fas fa-envelope"></i></span>
+                                <input type="email" name="email" class="form-control border-start-0" id="id_email"
+                                    placeholder="email@example.com">
                             </div>
                         </div>
                     </div>
@@ -66,15 +75,17 @@
                     <div class="mb-4">
                         <label for="id_username" class="form-label small fw-bold text-uppercase">Username</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-user"></i></span>
+                            <span class="input-group-text bg-transparent border-end-0"><i
+                                    class="fas fa-user"></i></span>
                             {{ form.username }}
                         </div>
                         {% if form.username.errors %}
-                            {% for error in form.username.errors %}
-                                <div class="text-danger small mt-1"><i class="fas fa-info-circle me-1"></i>{{ error }}</div>
-                            {% endfor %}
+                        {% for error in form.username.errors %}
+                        <div class="text-danger small mt-1"><i class="fas fa-info-circle me-1"></i>{{ error }}</div>
+                        {% endfor %}
                         {% else %}
-                            <div class="form-text small">Use only lowercase letters, numbers, dots (.), hyphens (-), and underscores (_).</div>
+                        <div class="form-text small">Use only lowercase letters, numbers, dots (.), hyphens (-), and
+                            underscores (_).</div>
                         {% endif %}
                     </div>
 
@@ -82,21 +93,24 @@
                         <div class="col-md-6">
                             <label for="id_password1" class="form-label small fw-bold text-uppercase">Password</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-key"></i></span>
+                                <span class="input-group-text bg-transparent border-end-0"><i
+                                        class="fas fa-key"></i></span>
                                 {{ form.password1 }}
                             </div>
                             {% for error in form.password1.errors %}
-                                <div class="text-danger small mt-1"><i class="fas fa-info-circle me-1"></i>{{ error }}</div>
+                            <div class="text-danger small mt-1"><i class="fas fa-info-circle me-1"></i>{{ error }}</div>
                             {% endfor %}
                         </div>
                         <div class="col-md-6">
-                            <label for="id_password2" class="form-label small fw-bold text-uppercase">Confirm Password</label>
+                            <label for="id_password2" class="form-label small fw-bold text-uppercase">Confirm
+                                Password</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-check-double"></i></span>
+                                <span class="input-group-text bg-transparent border-end-0"><i
+                                        class="fas fa-check-double"></i></span>
                                 {{ form.password2 }}
                             </div>
                             {% for error in form.password2.errors %}
-                                <div class="text-danger small mt-1"><i class="fas fa-info-circle me-1"></i>{{ error }}</div>
+                            <div class="text-danger small mt-1"><i class="fas fa-info-circle me-1"></i>{{ error }}</div>
                             {% endfor %}
                         </div>
                     </div>
@@ -122,7 +136,7 @@
 
 {% block extra_js %}
 <script>
-    document.getElementById('showPasswords').addEventListener('change', function() {
+    document.getElementById('showPasswords').addEventListener('change', function () {
         const passwordInputs = document.querySelectorAll('input[type="password"], input[type="text"]');
         passwordInputs.forEach(input => {
             if (input.name.includes('password')) {
@@ -134,11 +148,11 @@
     // Autocompletion logic for Employee ID
     const employeeIdInput = document.getElementById('id_employee_id');
     const feedback = document.getElementById('autocompleteFeedback');
-    
-    employeeIdInput.addEventListener('blur', function() {
+
+    employeeIdInput.addEventListener('blur', function () {
         const id = this.value.trim();
         if (!id) return;
-        
+
         feedback.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Searching...';
         feedback.className = 'form-text text-info';
 
@@ -150,7 +164,7 @@
                     document.getElementById('id_last_name').value = data.last_name;
                     document.getElementById('id_email').value = data.email;
                     document.getElementById('id_designation').value = data.designation;
-                    
+
                     feedback.innerHTML = '<i class="fas fa-check-circle me-1"></i>Beneficiary found! Fields autocompleted.';
                     feedback.className = 'form-text text-success';
                 } else {
@@ -166,4 +180,3 @@
     });
 </script>
 {% endblock %}
-

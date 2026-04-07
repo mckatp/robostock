@@ -18,8 +18,7 @@
                 <span class="badge bg-info text-dark mt-2">{{ beneficiary.role }}</span>
             </div>
             <div class="text-end">
-                <p class="text-muted small mb-1"><i class="fas fa-envelope me-2"></i>{{ beneficiary.email|default:"No
-                    email" }}</p>
+                <p class="text-muted small mb-1"><i class="fas fa-envelope me-2"></i>{{ beneficiary.email|default:"No email" }}</p>
                 <p class="text-muted small mb-2">Added by: {{ beneficiary.added_by.username }}</p>
                 {% if request.user.is_staff %}
                 <div class="d-flex gap-2 justify-content-end">

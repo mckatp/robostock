@@ -1,6 +1,6 @@
 from django import forms
 from django.db.models import Q
-from .models import Transaction, Component, Beneficiary, Sale, KitItem
+from .models import Transaction, Component, Beneficiary, Sale, KitItem, GeneralKitItem
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 
@@ -253,4 +253,23 @@ class KitItemForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Arduino Uno'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'placeholder': '1'}),
         }
+
+
+class GeneralKitItemForm(forms.ModelForm):
+    class Meta:
+        model = GeneralKitItem
+        fields = ['serial_number', 'name', 'category', 'count', 'description']
+        widgets = {
+            'serial_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., GK-001'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Soldering Iron'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'count': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'placeholder': '0'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional description...'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['count'].required = False
+        self.fields['description'].required = False
+        self.fields['category'].empty_label = "-- Select Category --"
 

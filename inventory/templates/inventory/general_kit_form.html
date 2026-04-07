@@ -1,0 +1,98 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}{{ title }} - RoboStock{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2 mb-0"><i class="fas fa-toolbox me-2 text-primary"></i>{{ title }}</h1>
+            <a href="{% url 'general_kit_list' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i>Back
+            </a>
+        </div>
+
+        <div class="card shadow border-0 overflow-hidden">
+            <div class="card-header bg-primary bg-gradient text-white py-3">
+                <h5 class="mb-0 card-title"><i class="fas fa-edit me-2"></i>Item Details</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="row g-4">
+                        <!-- Serial Number -->
+                        <div class="col-md-6">
+                            <label for="{{ form.serial_number.id_for_label }}"
+                                class="form-label small fw-bold text-uppercase">Serial Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0"><i
+                                        class="fas fa-barcode"></i></span>
+                                {{ form.serial_number }}
+                            </div>
+                            {% if form.serial_number.errors %}<div class="text-danger small mt-1">{{ form.serial_number.errors }}</div>{% endif %}
+                        </div>
+
+                        <!-- Name -->
+                        <div class="col-md-6">
+                            <label for="{{ form.name.id_for_label }}"
+                                class="form-label small fw-bold text-uppercase">Item Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0"><i
+                                        class="fas fa-tag"></i></span>
+                                {{ form.name }}
+                            </div>
+                            {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors }}</div>{% endif %}
+                        </div>
+
+                        <!-- Category -->
+                        <div class="col-md-6">
+                            <label for="{{ form.category.id_for_label }}"
+                                class="form-label small fw-bold text-uppercase">Category</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0"><i
+                                        class="fas fa-layer-group"></i></span>
+                                {{ form.category }}
+                            </div>
+                            {% if form.category.errors %}<div class="text-danger small mt-1">{{ form.category.errors }}
+                            </div>{% endif %}
+                        </div>
+
+                        <!-- Count -->
+                        <div class="col-md-6">
+                            <label for="{{ form.count.id_for_label }}"
+                                class="form-label small fw-bold text-uppercase">Count <span
+                                    class="text-muted fw-normal">(optional)</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0"><i
+                                        class="fas fa-cubes"></i></span>
+                                {{ form.count }}
+                            </div>
+                            {% if form.count.errors %}<div class="text-danger small mt-1">{{ form.count.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Description -->
+                        <div class="col-12">
+                            <label for="{{ form.description.id_for_label }}"
+                                class="form-label small fw-bold text-uppercase">Description <span
+                                    class="text-muted fw-normal">(optional)</span></label>
+                            {{ form.description }}
+                            {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-5">
+                        <a href="{% url 'general_kit_list' %}" class="btn btn-outline-secondary px-4">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary px-5 shadow">
+                            <i class="fas fa-save me-2"></i>Save Item
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

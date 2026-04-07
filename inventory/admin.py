@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Component, Beneficiary, Transaction
+from .models import Category, Component, Beneficiary, Transaction, GeneralKitItem
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -23,3 +23,9 @@ class TransactionAdmin(admin.ModelAdmin):
     list_display = ('component', 'borrower', 'quantity_taken', 'checkout_time', 'return_time', 'authorized_by')
     list_filter = ('return_time', 'checkout_time')
     search_fields = ('component__name', 'borrower__name')
+
+@admin.register(GeneralKitItem)
+class GeneralKitItemAdmin(admin.ModelAdmin):
+    list_display = ('serial_number', 'name', 'category', 'count', 'last_updated')
+    list_filter = ('category',)
+    search_fields = ('serial_number', 'name', 'description')

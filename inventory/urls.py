@@ -31,9 +31,17 @@ urlpatterns = [
     path('sales/', views.sale_list, name='sale_list'),
     path('checkouts/', views.checkout_list, name='checkout_list'),
     path('component/<int:pk>/restock/', views.restock_component, name='restock_component'),
+    path('component/<int:pk>/to-general-kit/', views.checkout_to_general_kit, name='checkout_to_general_kit'),
     
     # Kit Items
     path('kit/<int:pk>/add_item/', views.add_kit_item, name='add_kit_item'),
     path('kit/item/<int:item_id>/update_qty/', views.update_kit_item_qty, name='update_kit_item_qty'),
     path('kit/item/<int:item_id>/delete/', views.delete_kit_item, name='delete_kit_item'),
+
+    # General Kit (independent section)
+    path('general-kit/', views.general_kit_list, name='general_kit_list'),
+    path('general-kit/add/', views.add_general_kit_item, name='add_general_kit_item'),
+    path('general-kit/<int:pk>/edit/', views.edit_general_kit_item, name='edit_general_kit_item'),
+    path('general-kit/<int:pk>/delete/', views.delete_general_kit_item, name='delete_general_kit_item'),
+    path('general-kit/<int:pk>/update_qty/', views.update_general_kit_qty, name='update_general_kit_qty'),
 ]

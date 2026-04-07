@@ -21,13 +21,14 @@
                     <div class="flex-grow-1">
                         <h4 class="fw-bold mb-1 text-primary">{{ component.name }}</h4>
                         <div class="text-muted small">
-                            <span class="me-3"><i class="fas fa-barcode me-1"></i>{{ component.serial_number|default:"N/A" }}</span>
-                            <span><i class="fas fa-box me-1"></i>{{ component.box_number|default:"N/A" }}</span>
+                            <span class="me-3"><i class="fas fa-barcode me-1"></i>{{ component.serial_number|default:"—" }}</span>
+                            <span><i class="fas fa-box me-1"></i>{{ component.box_number|default:"—" }}</span>
                         </div>
                     </div>
                     <div class="text-end">
                         <div class="small text-uppercase text-muted fw-bold">Available</div>
-                        <div class="h3 fw-bold mb-0 {% if component.quantity < 5 %}text-warning{% else %}text-success{% endif %}">
+                        <div
+                            class="h3 fw-bold mb-0 {% if component.quantity < 5 %}text-warning{% else %}text-success{% endif %}">
                             {{ component.quantity }}
                         </div>
                     </div>
@@ -42,7 +43,7 @@
             <div class="card-body p-4">
                 <form method="post" id="checkoutForm">
                     {% csrf_token %}
-                    
+
                     <div class="mb-4">
                         <label class="form-label small fw-bold text-uppercase">Checkout Date</label>
                         <div class="alert alert-light border mb-0 py-2">
@@ -54,9 +55,11 @@
                         <div class="card-body p-3">
                             <div class="row g-3">
                                 <div class="col-md-12">
-                                    <label for="{{ form.borrower_id.id_for_label }}" class="form-label small fw-bold text-uppercase">Borrower ID Search</label>
+                                    <label for="{{ form.borrower_id.id_for_label }}"
+                                        class="form-label small fw-bold text-uppercase">Borrower ID Search</label>
                                     <div class="input-group">
-                                        <span class="input-group-text bg-white border-end-0"><i class="fas fa-id-card"></i></span>
+                                        <span class="input-group-text bg-white border-end-0"><i
+                                                class="fas fa-id-card"></i></span>
                                         {{ form.borrower_id }}
                                     </div>
                                     <div id="idFeedback" class="form-text mt-2"></div>
@@ -76,40 +79,47 @@
                     <div class="mb-4" id="dropdownContainer">
                         <label for="{{ form.borrower.id_for_label }}" class="form-label small fw-bold text-uppercase">{{ form.borrower.label }} <span class="text-danger small">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-users"></i></span>
+                            <span class="input-group-text bg-transparent border-end-0"><i
+                                    class="fas fa-users"></i></span>
                             {{ form.borrower }}
                         </div>
                         {% if form.borrower.errors %}
-                            <div class="text-danger small mt-1">{{ form.borrower.errors }}</div>
+                        <div class="text-danger small mt-1">{{ form.borrower.errors }}</div>
                         {% endif %}
                         <div class="form-text small mt-2">
-                            Use the Search ID field above for Students & Employees, or select an Intern/Other from this list.
+                            Use the Search ID field above for Students & Employees, or select an Intern/Other from this
+                            list.
                         </div>
                     </div>
 
                     <div class="mb-5">
-                        <label for="{{ form.quantity_taken.id_for_label }}" class="form-label small fw-bold text-uppercase">Quantity to Take <span class="text-danger small">*</span></label>
+                        <label for="{{ form.quantity_taken.id_for_label }}"
+                            class="form-label small fw-bold text-uppercase">Quantity to Take <span
+                                class="text-danger small">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-cubes"></i></span>
+                            <span class="input-group-text bg-transparent border-end-0"><i
+                                    class="fas fa-cubes"></i></span>
                             {{ form.quantity_taken }}
                         </div>
                         {% if form.quantity_taken.errors %}
-                            <div class="text-danger small mt-1">{{ form.quantity_taken.errors }}</div>
+                        <div class="text-danger small mt-1">{{ form.quantity_taken.errors }}</div>
                         {% endif %}
                         <div class="form-text small">Maximum allowed: {{ component.quantity }}</div>
                     </div>
 
                     <div class="mb-5">
-                        <label for="{{ form.notes.id_for_label }}" class="form-label small fw-bold text-uppercase">Description / Notes</label>
+                        <label for="{{ form.notes.id_for_label }}"
+                            class="form-label small fw-bold text-uppercase">Description / Notes</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-sticky-note"></i></span>
+                            <span class="input-group-text bg-transparent border-end-0"><i
+                                    class="fas fa-sticky-note"></i></span>
                             {{ form.notes }}
                         </div>
                         {% if form.notes.errors %}
-                            <div class="text-danger small mt-1">{{ form.notes.errors }}</div>
+                        <div class="text-danger small mt-1">{{ form.notes.errors }}</div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="d-grid shadow-sm">
                         <button type="submit" class="btn btn-primary btn-lg">
                             <i class="fas fa-check-circle me-2"></i>Confirm Checkout
@@ -122,7 +132,7 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const borrowerIdInput = document.getElementById('{{ form.borrower_id.id_for_label }}');
         const borrowerSelect = document.getElementById('{{ form.borrower.id_for_label }}');
         const feedback = document.getElementById('idFeedback');
@@ -133,10 +143,10 @@
 
         let timeout = null;
 
-        borrowerIdInput.addEventListener('input', function() {
+        borrowerIdInput.addEventListener('input', function () {
             clearTimeout(timeout);
             const id = this.value.trim();
-            
+
             if (!id) {
                 feedback.innerHTML = '';
                 foundContainer.style.display = 'none';
@@ -174,8 +184,8 @@
         });
     });
 </script>
-            </div>
-        </div>
-    </div>
+</div>
+</div>
+</div>
 </div>
 {% endblock %}

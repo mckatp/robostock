@@ -104,3 +104,19 @@ class Sale(models.Model):
 
     def __str__(self):
         return f"{self.buyer.name if self.buyer else 'Unknown'} - {self.component.name}"
+
+class GeneralKitItem(models.Model):
+    """Items in the General Kit — separate from inventory, for daily-use tracking."""
+    serial_number = models.CharField(max_length=100, unique=True, help_text="Unique identifier for this item")
+    name = models.CharField(max_length=200)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='general_kit_items')
+    count = models.IntegerField(default=0, help_text="Current quantity available")
+    description = models.TextField(blank=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} (×{self.count})"

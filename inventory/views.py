@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Component, Transaction, Beneficiary, Category, Sale, KitItem
+from .models import Component, Transaction, Beneficiary, Category, Sale, KitItem, GeneralKitItem
 from .forms import CheckoutForm, ComponentForm, BeneficiaryForm, KitItemForm
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from django.contrib import messages
 from django.http import JsonResponse
-from .forms import CheckoutForm, ComponentForm, BeneficiaryForm, EnhancedUserCreationForm, SellForm, KitItemForm
+from .forms import CheckoutForm, ComponentForm, BeneficiaryForm, EnhancedUserCreationForm, SellForm, KitItemForm, GeneralKitItemForm
 from django.core.mail import send_mail
 from django.views.decorators.http import require_POST
 
@@ -40,9 +40,10 @@ def dashboard(request):
             'total_components': public_components.count(),
         })
 
-    # For logged-in users, separate components and kits
+    # For logged-in users, separate components and general kit items
     components = base_qs.filter(component_type='GENERAL')
-    kits = base_qs.filter(component_type='KIT')
+    # Fetch recent general kit items
+    general_kit_items = GeneralKitItem.objects.all().order_by('-last_updated')[:4]
 
     low_stock_components = Component.objects.filter(component_type='GENERAL', quantity__lte=5).order_by('quantity', 'name')
 
@@ -52,17 +53,16 @@ def dashboard(request):
 
     from django.db.models import Sum
     total_components = Component.objects.filter(component_type='GENERAL').count()
-    total_kits = Component.objects.filter(component_type='KIT').count()
+    total_kits = GeneralKitItem.objects.count()
     total_revenue = Sale.objects.filter(is_paid=True).aggregate(total=Sum('total_price'))['total'] or 0
     active_checkouts = Transaction.objects.filter(return_time__isnull=True).count()
     low_stock_count = low_stock_components.count()
     unpaid_sales = Sale.objects.filter(is_paid=False).aggregate(total=Sum('total_price'))['total'] or 0
 
-    recent_kits = kits.order_by('-last_updated')[:4]
 
     context = {
         'components': latest_components,
-        'kits': recent_kits,
+        'kits': general_kit_items,
         'query': query,
         'low_stock_components': low_stock_components,
         'sales': latest_sales,
@@ -293,6 +293,48 @@ RoboStock Lab Management
     return render(request, 'inventory/return_confirm.html', {
         'transaction': transaction,
         'next': request.GET.get('next', '')
+    })
+
+@login_required
+def checkout_to_general_kit(request, pk):
+    component = get_object_or_404(Component, pk=pk)
+    if request.method == 'POST':
+        try:
+            quantity = int(request.POST.get('quantity', 0))
+            if quantity <= 0:
+                messages.error(request, "Quantity must be greater than zero.")
+            elif quantity > component.quantity:
+                messages.error(request, f"Not enough stock. Available: {component.quantity}")
+            else:
+                # Deduct from component
+                component.quantity -= quantity
+                component.save()
+
+                # Add to General Kit
+                gk_item, created = GeneralKitItem.objects.get_or_create(
+                    name=component.name,
+                    defaults={
+                        'serial_number': component.serial_number or f"GK-{component.id}",
+                        'category': component.category,
+                        'description': component.description
+                    }
+                )
+                if not created:
+                    gk_item.count += quantity
+                    gk_item.save()
+                else:
+                    # If created, defaults handled fields, but we should set count
+                    gk_item.count = quantity
+                    gk_item.save()
+
+                messages.success(request, f"Successfully moved {quantity} {component.name} to General Kit.")
+                return redirect('component_detail', pk=component.pk)
+        except (ValueError, TypeError):
+            messages.error(request, "Invalid quantity.")
+    
+    return render(request, 'inventory/checkout_to_general_kit.html', {
+        'component': component,
+        'title': 'Checkout to General Kit'
     })
 
 @login_required
@@ -689,3 +731,80 @@ def checkout_list(request):
     )
     return render(request, 'inventory/checkout_list.html', {'checkouts': checkouts})
 
+
+# ─── General Kit views ───────────────────────────────────────────────
+
+@login_required
+def general_kit_list(request):
+    query = request.GET.get('q')
+    if query:
+        items = GeneralKitItem.objects.filter(
+            Q(name__icontains=query) |
+            Q(serial_number__icontains=query) |
+            Q(category__name__icontains=query) |
+            Q(description__icontains=query)
+        )
+    else:
+        items = GeneralKitItem.objects.all()
+    return render(request, 'inventory/general_kit.html', {
+        'items': items,
+        'query': query,
+        'title': 'General Kit',
+    })
+
+
+@login_required
+def add_general_kit_item(request):
+    if request.method == 'POST':
+        form = GeneralKitItemForm(request.POST)
+        if form.is_valid():
+            item = form.save()
+            messages.success(request, f"'{item.name}' added to General Kit.")
+            return redirect('general_kit_list')
+    else:
+        form = GeneralKitItemForm()
+    return render(request, 'inventory/general_kit_form.html', {
+        'form': form,
+        'title': 'Add General Kit Item',
+    })
+
+
+@login_required
+def edit_general_kit_item(request, pk):
+    item = get_object_or_404(GeneralKitItem, pk=pk)
+    if request.method == 'POST':
+        form = GeneralKitItemForm(request.POST, instance=item)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"'{item.name}' updated.")
+            return redirect('general_kit_list')
+    else:
+        form = GeneralKitItemForm(instance=item)
+    return render(request, 'inventory/general_kit_form.html', {
+        'form': form,
+        'title': 'Edit General Kit Item',
+        'item': item,
+    })
+
+
+@login_required
+@require_POST
+def delete_general_kit_item(request, pk):
+    item = get_object_or_404(GeneralKitItem, pk=pk)
+    name = item.name
+    item.delete()
+    messages.success(request, f"'{name}' removed from General Kit.")
+    return redirect('general_kit_list')
+
+
+@login_required
+@require_POST
+def update_general_kit_qty(request, pk):
+    item = get_object_or_404(GeneralKitItem, pk=pk)
+    try:
+        change = int(request.POST.get('change', 0))
+        item.count = max(0, item.count + change)
+        item.save()
+        return JsonResponse({'status': 'success', 'new_qty': item.count})
+    except (ValueError, TypeError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid change'}, status=400)
