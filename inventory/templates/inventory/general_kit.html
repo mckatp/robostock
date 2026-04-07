@@ -52,7 +52,7 @@
                     {% for item in items %}
                     <tr id="gk-item-{{ item.id }}">
                         <td class="ps-4">
-                            <span class="badge bg-secondary text-uppercase small py-1 px-2">{{ item.serial_number }}</span>
+                            <span class="badge bg-secondary text-uppercase small py-1 px-2">{{ item.serial_number                                 }}</span>
                         </td>
                         <td class="fw-medium">{{ item.name }}</td>
                         <td><span class="text-secondary">{{ item.category.name }}</span></td>
@@ -64,7 +64,7 @@
                                     <i class="fas fa-minus-circle text-danger"></i>
                                 </button>
                                 <span class="mx-2 fw-bold text-white gk-item-qty"
-                                    style="min-width: 24px; display: inline-block; text-align: center;">{{ item.count }}</span>
+                                    style="min-width: 24px; display: inline-block; text-align: center;">{{ item.count                                     }}</span>
                                 <button class="btn btn-sm btn-link text-decoration-none py-0 px-2 gk-update-qty"
                                     data-item-id="{{ item.id }}" data-change="1" title="Increase">
                                     <i class="fas fa-plus-circle text-success"></i>
@@ -72,9 +72,17 @@
                             </div>
                         </td>
                         <td>
-                            <span class="text-light opacity-75 small">{{ item.description|default:"—"|truncatewords:10 }}</span>
+                            <span class="text-light opacity-75 small">{{ item.description|default:"—"|truncatewords:10                                 }}</span>
                         </td>
                         <td class="text-end pe-4">
+                            <a href="{% url 'checkout_general_kit_item' item.pk %}"
+                                class="btn btn-sm btn-outline-info border-0" title="Checkout">
+                                <i class="fas fa-hand-holding"></i>
+                            </a>
+                            <a href="{% url 'discharge_damaged' item.pk 'general_kit' %}"
+                                class="btn btn-sm btn-outline-danger border-0" title="Discharge Damaged">
+                                <i class="fas fa-trash-alt text-danger"></i>
+                            </a>
                             <a href="{% url 'edit_general_kit_item' item.pk %}"
                                 class="btn btn-sm btn-outline-warning border-0" title="Edit">
                                 <i class="fas fa-edit"></i>

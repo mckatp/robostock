@@ -22,6 +22,7 @@ class CheckoutForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.component = kwargs.pop('component', None)
+        self.general_kit_item = kwargs.pop('general_kit_item', None)
         super().__init__(*args, **kwargs)
         # Filter dropdown to only include Interns and Others
         self.fields['borrower'].queryset = Beneficiary.objects.filter(category__in=['Intern', 'Other'])
@@ -29,8 +30,13 @@ class CheckoutForm(forms.ModelForm):
         self.fields['borrower'].label = "Select Borrower (Intern/Other)"
         self.fields['borrower'].empty_label = "-- Select Borrower (Intern/Other) --"
         
+        max_qty = 1
         if self.component:
-            self.fields['quantity_taken'].widget.attrs['max'] = self.component.quantity
+            max_qty = self.component.quantity
+        elif self.general_kit_item:
+            max_qty = self.general_kit_item.count
+            
+        self.fields['quantity_taken'].widget.attrs['max'] = max_qty
 
     def clean(self):
         cleaned_data = super().clean()
@@ -58,6 +64,8 @@ class CheckoutForm(forms.ModelForm):
         quantity = self.cleaned_data['quantity_taken']
         if self.component and quantity > self.component.quantity:
             raise forms.ValidationError(f"Only {self.component.quantity} items available.")
+        if self.general_kit_item and quantity > self.general_kit_item.count:
+            raise forms.ValidationError(f"Only {self.general_kit_item.count} items available in General Kit.")
         return quantity
 
 class ComponentForm(forms.ModelForm):
@@ -272,4 +280,19 @@ class GeneralKitItemForm(forms.ModelForm):
         self.fields['count'].required = False
         self.fields['description'].required = False
         self.fields['category'].empty_label = "-- Select Category --"
+
+class DischargeForm(forms.Form):
+    quantity = forms.IntegerField(min_value=1, widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Quantity to discharge'}))
+    notes = forms.CharField(required=True, widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Reason for discharge (e.g., broken during lab, water damage...)'}))
+
+    def __init__(self, *args, **kwargs):
+        self.max_qty = kwargs.pop('max_qty', 1000000)
+        super().__init__(*args, **kwargs)
+        self.fields['quantity'].widget.attrs['max'] = self.max_qty
+
+    def clean_quantity(self):
+        qty = self.cleaned_data.get('quantity')
+        if qty > self.max_qty:
+            raise forms.ValidationError(f"Cannot discharge more than available stock ({self.max_qty}).")
+        return qty
 

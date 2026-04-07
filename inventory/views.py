@@ -1,15 +1,13 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Component, Transaction, Beneficiary, Category, Sale, KitItem, GeneralKitItem
-from .forms import CheckoutForm, ComponentForm, BeneficiaryForm, KitItemForm
+from .models import Component, Transaction, Beneficiary, Category, Sale, KitItem, GeneralKitItem, StockMovement
+from .forms import CheckoutForm, ComponentForm, BeneficiaryForm, KitItemForm, UserForm, BeneficiaryProfileForm, EnhancedUserCreationForm, SellForm, GeneralKitItemForm, DischargeForm
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
-from .forms import UserForm, BeneficiaryProfileForm, KitItemForm
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from django.contrib import messages
 from django.http import JsonResponse
-from .forms import CheckoutForm, ComponentForm, BeneficiaryForm, EnhancedUserCreationForm, SellForm, KitItemForm, GeneralKitItemForm
 from django.core.mail import send_mail
 from django.views.decorators.http import require_POST
 
@@ -198,29 +196,8 @@ def checkout_component(request, pk):
             if transaction.borrower.email:
                 try:
                     subject = f"RoboStock: Component Checkout Notification - {component.name}"
-                    message = f"""
-Hello {transaction.borrower.name},
-
-You have successfully checked out an item from the RoboStock Laboratory Inventory.
-
-Details:
-- Component: {component.name}
-- Quantity: {transaction.quantity_taken}
-- Checkout Time: {transaction.checkout_time.strftime('%Y-%m-%d %H:%M:%S')}
-- Authorized By: {request.user.get_full_name() or request.user.username}
-
-Please ensure the items are returned in good condition.
-
-Best regards,
-RoboStock Lab Management
-                    """
-                    send_mail(
-                        subject,
-                        message,
-                        None, # Uses DEFAULT_FROM_EMAIL
-                        [transaction.borrower.email],
-                        fail_silently=True,
-                    )
+                    message = f"Hello {transaction.borrower.name},\n\nYou have successfully checked out {transaction.quantity_taken} of {component.name}.\n\nBest regards,\nRoboStock Lab Management"
+                    send_mail(subject, message, None, [transaction.borrower.email], fail_silently=True)
                 except Exception as e:
                     print(f"Error sending email: {e}")
 
@@ -231,7 +208,45 @@ RoboStock Lab Management
     
     context = {
         'form': form,
-        'component': component,
+        'item': component,
+        'is_general_kit': False,
+        'current_date': timezone.now()
+    }
+    return render(request, 'inventory/checkout_form.html', context)
+
+@login_required
+def checkout_general_kit_item(request, pk):
+    gk_item = get_object_or_404(GeneralKitItem, pk=pk)
+    if request.method == 'POST':
+        form = CheckoutForm(request.POST, general_kit_item=gk_item)
+        if form.is_valid():
+            transaction = form.save(commit=False)
+            transaction.general_kit_item = gk_item
+            transaction.authorized_by = request.user
+            transaction.save()
+            
+            # Decrease count
+            gk_item.count -= transaction.quantity_taken
+            gk_item.save()
+            
+            # Send email
+            if transaction.borrower.email:
+                try:
+                    subject = f"RoboStock: General Kit Item Checkout - {gk_item.name}"
+                    message = f"Hello {transaction.borrower.name},\n\nYou have checked out {transaction.quantity_taken} of {gk_item.name} from the General Kit.\n\nBest regards,\nRoboStock Lab Management"
+                    send_mail(subject, message, None, [transaction.borrower.email], fail_silently=True)
+                except Exception as e:
+                    print(f"Error sending email: {e}")
+
+            messages.success(request, f"Checked out {transaction.quantity_taken} of {gk_item.name} (General Kit) to {transaction.borrower.name}")
+            return redirect('general_kit_list')
+    else:
+        form = CheckoutForm(general_kit_item=gk_item)
+    
+    context = {
+        'form': form,
+        'item': gk_item,
+        'is_general_kit': True,
         'current_date': timezone.now()
     }
     return render(request, 'inventory/checkout_form.html', context)
@@ -241,54 +256,45 @@ def return_component(request, transaction_id):
     transaction = get_object_or_404(Transaction, pk=transaction_id)
     if transaction.return_time:
         messages.warning(request, "This item has already been returned.")
-        return redirect('component_detail', pk=transaction.component.pk)
+        if transaction.component:
+            return redirect('component_detail', pk=transaction.component.pk)
+        return redirect('general_kit_list')
         
     if request.method == 'POST':
         transaction.return_time = timezone.now()
         transaction.save()
         
         # Increase quantity back
-        component = transaction.component
-        component.quantity += transaction.quantity_taken
-        component.save()
+        if transaction.component:
+            item = transaction.component
+            item.quantity += transaction.quantity_taken
+            item.save()
+            target_url = 'component_detail'
+            target_pk = item.pk
+        else:
+            item = transaction.general_kit_item
+            item.count += transaction.quantity_taken
+            item.save()
+            target_url = 'general_kit_list'
+            target_pk = None # Redirect to list if it's GK for now
         
-        # Send email notification if borrower has email
+        # Send email
         if transaction.borrower.email:
             try:
-                subject = f"RoboStock: Component Return Confirmation - {component.name}"
-                message = f"""
-Hello {transaction.borrower.name},
-
-This email confirms that you have successfully returned the following item to the RoboStock Laboratory Inventory.
-
-Details:
-- Component: {component.name}
-- Quantity Returned: {transaction.quantity_taken}
-- Return Time: {transaction.return_time.strftime('%Y-%m-%d %H:%M:%S')}
-- Processed By: {request.user.get_full_name() or request.user.username}
-
-Thank you for returning the items on time.
-
-Best regards,
-RoboStock Lab Management
-                """
-                send_mail(
-                    subject,
-                    message,
-                    None, # Uses DEFAULT_FROM_EMAIL
-                    [transaction.borrower.email],
-                    fail_silently=True,
-                )
+                subject = f"RoboStock: Item Return Confirmation - {item.name}"
+                message = f"Hello {transaction.borrower.name},\n\nConfirmed return of {transaction.quantity_taken} of {item.name}.\n\nBest regards,\nRoboStock Lab Management"
+                send_mail(subject, message, None, [transaction.borrower.email], fail_silently=True)
             except Exception as e:
                 print(f"Error sending return email: {e}")
 
-        messages.success(request, f"Returned {transaction.quantity_taken} of {component.name} from {transaction.borrower.name}")
+        messages.success(request, f"Returned {transaction.quantity_taken} of {item.name} from {transaction.borrower.name}")
         
-        # Support redirecting back to where the user came from
         next_url = request.GET.get('next')
         if next_url:
             return redirect(next_url)
-        return redirect('component_detail', pk=component.pk)
+        if target_pk:
+            return redirect(target_url, pk=target_pk)
+        return redirect(target_url)
     
     return render(request, 'inventory/return_confirm.html', {
         'transaction': transaction,
@@ -299,43 +305,37 @@ RoboStock Lab Management
 def checkout_to_general_kit(request, pk):
     component = get_object_or_404(Component, pk=pk)
     if request.method == 'POST':
-        try:
-            quantity = int(request.POST.get('quantity', 0))
-            if quantity <= 0:
-                messages.error(request, "Quantity must be greater than zero.")
-            elif quantity > component.quantity:
-                messages.error(request, f"Not enough stock. Available: {component.quantity}")
-            else:
-                # Deduct from component
-                component.quantity -= quantity
-                component.save()
-
-                # Add to General Kit
-                gk_item, created = GeneralKitItem.objects.get_or_create(
-                    name=component.name,
-                    defaults={
-                        'serial_number': component.serial_number or f"GK-{component.id}",
-                        'category': component.category,
-                        'description': component.description
-                    }
-                )
-                if not created:
-                    gk_item.count += quantity
-                    gk_item.save()
-                else:
-                    # If created, defaults handled fields, but we should set count
-                    gk_item.count = quantity
-                    gk_item.save()
-
-                messages.success(request, f"Successfully moved {quantity} {component.name} to General Kit.")
-                return redirect('component_detail', pk=component.pk)
-        except (ValueError, TypeError):
-            messages.error(request, "Invalid quantity.")
-    
-    return render(request, 'inventory/checkout_to_general_kit.html', {
-        'component': component,
-        'title': 'Checkout to General Kit'
-    })
+        qty = int(request.POST.get('quantity', 1))
+        if qty <= component.quantity:
+            component.quantity -= qty
+            component.save()
+            
+            # Find or create general kit item
+            gk_item, created = GeneralKitItem.objects.get_or_create(
+                serial_number=component.serial_number,
+                defaults={
+                    'name': component.name,
+                    'category': component.category,
+                    'description': component.description or f"Transferred from inventory: {component.name}"
+                }
+            )
+            gk_item.count += qty
+            gk_item.save()
+            
+            # Log the movement
+            StockMovement.objects.create(
+                component=component,
+                general_kit_item=gk_item,
+                movement_type='TRANSFER',
+                quantity=qty,
+                user=request.user,
+                notes=f"Moved to General Kit"
+            )
+            
+            messages.success(request, f"Moved {qty} of {component.name} to General Kit.")
+        else:
+            messages.error(request, "Not enough quantity available.")
+    return redirect('component_detail', pk=pk)
 
 @login_required
 def beneficiary_list(request):
@@ -656,16 +656,22 @@ RoboStock Lab Management
 @require_POST
 def restock_component(request, pk):
     component = get_object_or_404(Component, pk=pk)
-    try:
-        qty = int(request.POST.get('quantity', 0))
-        if qty <= 0:
-            messages.error(request, "Please enter a valid quantity greater than 0.")
-        else:
-            component.quantity += qty
+    if request.method == 'POST':
+        quantity = int(request.POST.get('quantity', 0))
+        if quantity > 0:
+            component.quantity += quantity
             component.save()
-            messages.success(request, f"Restocked {qty} units of {component.name}. New quantity: {component.quantity}")
-    except (ValueError, TypeError):
-        messages.error(request, "Invalid quantity entered.")
+            # Log the movement
+            StockMovement.objects.create(
+                component=component,
+                movement_type='RESTOCK',
+                quantity=quantity,
+                user=request.user,
+                notes="Manual restock"
+            )
+            messages.success(request, f"Successfully restocked {quantity} units.")
+        else:
+            messages.error(request, "Invalid quantity.")
     return redirect('component_detail', pk=pk)
 
 @login_required
@@ -726,7 +732,7 @@ def checkout_list(request):
     checkouts = (
         Transaction.objects
         .filter(return_time__isnull=True)
-        .select_related('component', 'borrower', 'authorized_by')
+        .select_related('component', 'general_kit_item', 'borrower', 'authorized_by')
         .order_by('-checkout_time')
     )
     return render(request, 'inventory/checkout_list.html', {'checkouts': checkouts})
@@ -808,3 +814,61 @@ def update_general_kit_qty(request, pk):
         return JsonResponse({'status': 'success', 'new_qty': item.count})
     except (ValueError, TypeError):
         return JsonResponse({'status': 'error', 'message': 'Invalid change'}, status=400)
+
+@login_required
+def stock_movement_list(request):
+    """View to display the history of stock movements."""
+    movements = StockMovement.objects.select_related('component', 'general_kit_item', 'user').all()
+    return render(request, 'inventory/stock_movement_list.html', {
+        'movements': movements,
+        'title': 'Stock Movement Logs'
+    })
+
+@login_required
+def discharge_damaged(request, pk, item_type):
+    """View to discharge damaged items from main inventory or general kit."""
+    if item_type == 'component':
+        item = get_object_or_404(Component, pk=pk)
+        max_qty = item.quantity
+        redirect_url = 'component_detail'
+    else:
+        item = get_object_or_404(GeneralKitItem, pk=pk)
+        max_qty = item.count
+        redirect_url = 'general_kit_list'
+
+    if request.method == 'POST':
+        form = DischargeForm(request.POST, max_qty=max_qty)
+        if form.is_valid():
+            qty = form.cleaned_data['quantity']
+            notes = form.cleaned_data['notes']
+            
+            if item_type == 'component':
+                item.quantity -= qty
+            else:
+                item.count -= qty
+            item.save()
+            
+            # Log the movement
+            StockMovement.objects.create(
+                component=item if item_type == 'component' else None,
+                general_kit_item=item if item_type == 'general_kit' else None,
+                movement_type='DAMAGE',
+                quantity=qty,
+                user=request.user,
+                notes=notes
+            )
+            
+            messages.success(request, f"Successfully discharged {qty} units of {item.name} as damaged.")
+            if item_type == 'component':
+                return redirect(redirect_url, pk=pk)
+            else:
+                return redirect(redirect_url)
+    else:
+        form = DischargeForm(max_qty=max_qty)
+
+    return render(request, 'inventory/discharge_form.html', {
+        'form': form,
+        'item': item,
+        'item_type': item_type,
+        'title': f'Discharge Damaged: {item.name}'
+    })

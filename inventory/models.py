@@ -72,7 +72,8 @@ class Beneficiary(models.Model):
         return f"{self.name} ({self.category})"
 
 class Transaction(models.Model):
-    component = models.ForeignKey(Component, on_delete=models.CASCADE)
+    component = models.ForeignKey(Component, on_delete=models.CASCADE, null=True, blank=True)
+    general_kit_item = models.ForeignKey('GeneralKitItem', on_delete=models.CASCADE, null=True, blank=True, related_name='transactions')
     borrower = models.ForeignKey(Beneficiary, on_delete=models.CASCADE, null=True)
     authorized_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True)
     checkout_time = models.DateTimeField(auto_now_add=True)
@@ -81,7 +82,8 @@ class Transaction(models.Model):
     notes = models.TextField(blank=True, null=True, help_text="Optional description or notes")
 
     def __str__(self):
-        return f"{self.borrower.name} - {self.component.name}"
+        item_name = self.component.name if self.component else (self.general_kit_item.name if self.general_kit_item else "Unknown Item")
+        return f"{self.borrower.name if self.borrower else 'Unknown'} - {item_name}"
 
 class KitItem(models.Model):
     kit = models.ForeignKey(Component, on_delete=models.CASCADE, related_name='items', limit_choices_to={'component_type': 'KIT'})
@@ -120,3 +122,26 @@ class GeneralKitItem(models.Model):
 
     def __str__(self):
         return f"{self.name} (×{self.count})"
+
+class StockMovement(models.Model):
+    MOVEMENT_TYPES = [
+        ('TRANSFER', 'Transfer to General Kit'),
+        ('DAMAGE', 'Discharged as Damaged'),
+        ('RESTOCK', 'Restocked'),
+        ('LOST', 'Lost'),
+    ]
+    
+    component = models.ForeignKey(Component, on_delete=models.CASCADE, null=True, blank=True, related_name='movements')
+    general_kit_item = models.ForeignKey('GeneralKitItem', on_delete=models.CASCADE, null=True, blank=True, related_name='movements')
+    movement_type = models.CharField(max_length=20, choices=MOVEMENT_TYPES)
+    quantity = models.IntegerField()
+    user = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        item_name = self.component.name if self.component else (self.general_kit_item.name if self.general_kit_item else "Unknown")
+        return f"{self.movement_type} - {item_name} ({self.quantity})"

@@ -43,5 +43,8 @@ urlpatterns = [
     path('general-kit/add/', views.add_general_kit_item, name='add_general_kit_item'),
     path('general-kit/<int:pk>/edit/', views.edit_general_kit_item, name='edit_general_kit_item'),
     path('general-kit/<int:pk>/delete/', views.delete_general_kit_item, name='delete_general_kit_item'),
+    path('general-kit/<int:pk>/checkout/', views.checkout_general_kit_item, name='checkout_general_kit_item'),
     path('general-kit/<int:pk>/update_qty/', views.update_general_kit_qty, name='update_general_kit_qty'),
+    path('stock-logs/', views.stock_movement_list, name='stock_movement_list'),
+    path('discharge/<int:pk>/<str:item_type>/', views.discharge_damaged, name='discharge_damaged'),
 ]
