@@ -19,10 +19,10 @@ BACKUP_DIR="/home/user/robostock/backups"
 
 # ── Argument check ─────────────────────────────────────────────────────────────
 if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <backup_file.sql.gz>"
+    echo "Usage: $0 <backup_file>"
     echo ""
     echo "Available backups:"
-    ls -1t "${BACKUP_DIR}"/*.sql.gz 2>/dev/null || echo "  (none found)"
+    ls -1t "${BACKUP_DIR}"/*.sql.gz "${BACKUP_DIR}"/*.dump 2>/dev/null || echo "  (none found)"
     exit 1
 fi
 
@@ -56,6 +56,13 @@ if [ "${CONFIRM}" != "yes" ]; then
     exit 0
 fi
 
+# ── Load Credentials from .env ────────────────────────────────────────────────
+if [ -f "/home/user/robostock/.env" ]; then
+    # Simple grep/sed to get values without needing a full env parser
+    DB_PASSWORD=$(grep "^DB_PASSWORD=" /home/user/robostock/.env | cut -d'=' -f2 | tr -d "'\"")
+    export PGPASSWORD="${DB_PASSWORD}"
+fi
+
 echo ""
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting restore..."
 
@@ -64,21 +71,36 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Stopping robostock service..."
 sudo systemctl stop robostock || true
 
 # ── Drop and recreate the database ────────────────────────────────────────────
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Dropping and recreating database..."
-psql --host="${DB_HOST}" --port="${DB_PORT}" --username="postgres" \
-     --no-password --command="DROP DATABASE IF EXISTS ${DB_NAME};"
-psql --host="${DB_HOST}" --port="${DB_PORT}" --username="postgres" \
-     --no-password --command="CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
+# We use sudo -u postgres to leverage peer authentication on the local socket.
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Dropping and recreating database as superuser..."
+sudo -u postgres psql --command="DROP DATABASE IF EXISTS ${DB_NAME};"
+sudo -u postgres psql --command="CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
 
 # ── Restore ────────────────────────────────────────────────────────────────────
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Restoring from backup..."
-gunzip -c "${BACKUP_FILE}" | psql \
-    --host="${DB_HOST}" \
-    --port="${DB_PORT}" \
-    --username="${DB_USER}" \
-    --no-password \
-    --dbname="${DB_NAME}" \
-    --quiet
+
+if [[ "${BACKUP_FILE}" == *.dump ]]; then
+    # Custom format dump
+    pg_restore \
+        --host="${DB_HOST}" \
+        --port="${DB_PORT}" \
+        --username="${DB_USER}" \
+        --dbname="${DB_NAME}" \
+        --clean --if-exists \
+        --no-owner --no-privileges \
+        "${BACKUP_FILE}"
+elif [[ "${BACKUP_FILE}" == *.sql.gz ]]; then
+    # Gzip'd SQL format
+    gunzip -c "${BACKUP_FILE}" | psql \
+        --host="${DB_HOST}" \
+        --port="${DB_PORT}" \
+        --username="${DB_USER}" \
+        --dbname="${DB_NAME}" \
+        --quiet
+else
+    echo "ERROR: Unsupported backup format. Use .dump or .sql.gz"
+    exit 1
+fi
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Restore complete."
 
