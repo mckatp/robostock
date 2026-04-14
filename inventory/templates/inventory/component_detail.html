@@ -42,7 +42,8 @@
                 <div class="col-lg-7 col-xl-8">
                     <div class="card-body p-4 p-xl-5">
                         <div class="mb-4">
-                            <span class="badge bg-primary bg-gradient px-3 py-2 mb-2">{{ component.category.name }}</span>
+                            <span class="badge bg-primary bg-gradient px-3 py-2 mb-2">{{ component.category.name
+                                }}</span>
                             <h1 class="display-6 fw-bold text-white mb-1">{{ component.name }}</h1>
                             <p class="text-light opacity-75"><i class="fas fa-barcode me-2"></i>SN: <span
                                     class="fw-medium text-white">{{ component.serial_number|default:"—" }}</span></p>
@@ -86,10 +87,10 @@
                                 class="btn btn-primary btn-lg px-4 shadow-sm">
                                 <i class="fas fa-hand-holding-usd me-2"></i>Sell Component
                             </a>
-                            <a href="{% url 'checkout_to_general_kit' component.pk %}"
+                            <button type="button" id="openTransferBtn"
                                 class="btn btn-outline-info btn-lg px-4 shadow-sm">
                                 <i class="fas fa-toolbox me-2"></i>To General Kit
-                            </a>
+                            </button>
                             {% endif %}
                             {% else %}
                             <button class="btn btn-secondary btn-lg px-4" disabled>
@@ -211,11 +212,12 @@
                     {% csrf_token %}
                     <div class="modal-body p-4">
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-uppercase">Sub-Component Name</label>
+                            <label for="id_name" class="form-label small fw-bold text-uppercase">Sub-Component
+                                Name</label>
                             {{ kit_form.name }}
                         </div>
                         <div>
-                            <label class="form-label small fw-bold text-uppercase">Quantity</label>
+                            <label for="id_quantity" class="form-label small fw-bold text-uppercase">Quantity</label>
                             {{ kit_form.quantity }}
                         </div>
                     </div>
@@ -265,7 +267,8 @@
                             <td>{{ t.authorized_by.get_full_name|default:t.authorized_by.username }}</td>
                             <td><span class="badge bg-info text-dark bg-opacity-75 px-3">{{ t.quantity_taken }}</span>
                             </td>
-                            <td>{{ t.checkout_time|date:"M d, Y" }} <span class="text-light opacity-50 small">@ {{ t.checkout_time|date:"H:i" }}</span></td>
+                            <td>{{ t.checkout_time|date:"M d, Y" }} <span class="text-light opacity-50 small">@ {{
+                                    t.checkout_time|date:"H:i" }}</span></td>
                             <td class="text-end pe-4">
                                 <a href="{% url 'return_component' t.pk %}?next={{ request.path|urlencode }}"
                                     class="btn btn-sm btn-outline-success rounded-pill px-3">
@@ -404,6 +407,97 @@
 </div>
 {% endif %}
 
+<!-- ✅ CUSTOM TRANSFER TO GENERAL KIT MODAL -->
+{% if user.is_staff %}
+<div id="transferModalCustom" style="
+        display:none;
+        position:fixed;
+        top:0;left:0;
+        width:100%;height:100%;
+        background:rgba(0,0,0,0.8);
+        backdrop-filter: blur(5px);
+        z-index:9999;
+        align-items:center;
+        justify-content:center;
+     ">
+
+    <div style="
+        background: #1a2a3a;
+        width: 380px;
+        border-radius: 15px;
+        padding: 0;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        position: relative;
+        border: 1px solid rgba(255,255,255,0.1);
+        overflow: hidden;
+    ">
+        <!-- HEADER -->
+        <div style="
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        ">
+            <h5 style="margin: 0; color: #fff; font-weight: bold;">
+                <i class="fas fa-toolbox me-2"></i>Move to General Kit
+            </h5>
+            <button id="closeTransferBtn"
+                style="border:none; background:none; font-size:24px; color: #fff; cursor: pointer; line-height: 1;">
+                &times;
+            </button>
+        </div>
+
+        <!-- FORM -->
+        <form method="post" action="{% url 'checkout_to_general_kit' component.pk %}" style="padding: 25px;">
+            {% csrf_token %}
+
+            <p style="color: rgba(255,255,255,0.8); margin-bottom: 20px;">
+                Transfer <strong style="color: #fff;">{{ component.name }}</strong> to General Kit
+            </p>
+
+            <div style="margin-bottom: 20px;">
+                <label
+                    style="display: block; font-size: 11px; font-weight: bold; color: rgba(255,255,255,0.5); margin-bottom: 5px; text-transform: uppercase;">Available
+                    stock</label>
+                <div style="font-weight: bold; font-size: 24px; color: #10b981;">
+                    {{ component.quantity }} units
+                </div>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <label for="transferQtyCustom"
+                    style="display: block; font-size: 11px; font-weight: bold; color: rgba(255,255,255,0.5); margin-bottom: 5px; text-transform: uppercase;">Quantity
+                    to Move</label>
+                <input type="number" id="transferQtyCustom" name="quantity" value="1" min="1"
+                    max="{{ component.quantity }}" required style="
+                          width: 100%;
+                          padding: 12px;
+                          background: rgba(255,255,255,0.05);
+                          border: 1px solid rgba(255,255,255,0.1);
+                          border-radius: 8px;
+                          color: #fff;
+                          font-size: 18px;
+                          outline: none;
+                       ">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button type="button" id="cancelTransferBtn" class="btn btn-outline-light"
+                    style="border-radius: 8px; padding: 8px 20px;">
+                    Cancel
+                </button>
+
+                <button type="submit" class="btn btn-info"
+                    style="border-radius: 8px; padding: 8px 25px; font-weight: bold; color: #fff;">
+                    <i class="fas fa-arrow-right me-1"></i>Transfer Now
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
 
 
 {% endblock content %}
@@ -440,38 +534,51 @@
         });
 
         const urlParams = new URLSearchParams(window.location.search);
-        const modal = document.getElementById("restockModalCustom");
-        const openBtn = document.getElementById("openRestockBtn");
-        const closeBtn = document.getElementById("closeRestockBtn");
-        const cancelBtn = document.getElementById("cancelRestockBtn");
+        const restockModal = document.getElementById("restockModalCustom");
+        const openRestockBtn = document.getElementById("openRestockBtn");
+        const closeRestockBtn = document.getElementById("closeRestockBtn");
+        const cancelRestockBtn = document.getElementById("cancelRestockBtn");
         const restockInput = document.getElementById("restockQtyCustom");
 
-        function openModal() {
+        // General Kit Transfer Modal Logic
+        const transferModal = document.getElementById("transferModalCustom");
+        const openTransferBtn = document.getElementById("openTransferBtn");
+        const closeTransferBtn = document.getElementById("closeTransferBtn");
+        const cancelTransferBtn = document.getElementById("cancelTransferBtn");
+        const transferInput = document.getElementById("transferQtyCustom");
+
+        function openModal(modal, input) {
             if (modal) {
                 modal.style.display = "flex";
-                if (restockInput) {
-                    restockInput.focus();
-                    restockInput.select();
+                if (input) {
+                    input.focus();
+                    input.select();
                 }
             }
         }
 
-        function closeModal() {
+        function closeModal(modal) {
             if (modal) modal.style.display = "none";
         }
 
-        if (openBtn) openBtn.addEventListener("click", openModal);
-        if (closeBtn) closeBtn.addEventListener("click", closeModal);
-        if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+        // Restock Listeners
+        if (openRestockBtn) openRestockBtn.addEventListener("click", () => openModal(restockModal, restockInput));
+        if (closeRestockBtn) closeRestockBtn.addEventListener("click", () => closeModal(restockModal));
+        if (cancelRestockBtn) cancelRestockBtn.addEventListener("click", () => closeModal(restockModal));
 
-        if (modal) {
-            modal.addEventListener("click", function (e) {
-                if (e.target === modal) closeModal();
-            });
-        }
+        // Transfer Listeners
+        if (openTransferBtn) openTransferBtn.addEventListener("click", () => openModal(transferModal, transferInput));
+        if (closeTransferBtn) closeTransferBtn.addEventListener("click", () => closeModal(transferModal));
+        if (cancelTransferBtn) cancelTransferBtn.addEventListener("click", () => closeModal(transferModal));
+
+        // Global Modal Click-Outside Logic
+        window.addEventListener("click", function (e) {
+            if (e.target === restockModal) closeModal(restockModal);
+            if (e.target === transferModal) closeModal(transferModal);
+        });
 
         if (urlParams.get('restock') === '1') {
-            openModal();
+            openModal(restockModal, restockInput);
         }
     });
 </script>
