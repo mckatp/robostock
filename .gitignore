@@ -56,3 +56,5 @@ backups/*.sql.gz
 Thumbs.db
 
 
+# Backup
+backup.md
