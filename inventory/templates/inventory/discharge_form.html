@@ -1,0 +1,83 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}{{ title }} - RoboStock{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2 mb-0"><i class="fas fa-trash-alt me-2 text-danger"></i>Discharge Damaged</h1>
+            <a href="{% if item_type == 'component' %}{% url 'component_detail' item.pk %}{% else %}{% url 'general_kit_list' %}{% endif %}"
+                class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-times me-1"></i>Cancel
+            </a>
+        </div>
+
+        <div class="card shadow border-0 overflow-hidden mb-4 border-start border-danger border-4">
+            <div class="card-body p-4 bg-light bg-opacity-10">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-danger bg-opacity-10 p-3 rounded-3">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-1">{{ item.name }}</h4>
+                        <p class="text-muted mb-0 small">
+                            <span class="me-3"><i class="fas fa-barcode me-1"></i>{{ item.serial_number|default:"—"                                 }}</span>
+                            <span class="text-danger fw-bold"><i class="fas fa-cubes me-1"></i>Available: {% if                                 item_type == 'component' %}{{ item.quantity }}{% else %}{{ item.count }}{% endif                                 %}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow border-0 overflow-hidden">
+            <div class="card-header bg-transparent py-3">
+                <h5 class="mb-0 text-danger"><i class="fas fa-clipboard-check me-2"></i>Discharge Details</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-warning small mb-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Items discharged as damaged will be permanently removed from active stock. This action is logged for
+                    audit purposes.
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label for="{{ form.quantity.id_for_label }}"
+                            class="form-label small fw-bold text-uppercase">Quantity to Discharge <span
+                                class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent border-end-0"><i
+                                    class="fas fa-cubes"></i></span>
+                            {{ form.quantity }}
+                        </div>
+                        {% if form.quantity.errors %}
+                        <div class="text-danger small mt-1">{{ form.quantity.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-5">
+                        <label for="{{ form.notes.id_for_label }}"
+                            class="form-label small fw-bold text-uppercase">Reason / Notes <span
+                                class="text-danger">*</span></label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                        <div class="text-danger small mt-1">{{ form.notes.errors }}</div>
+                        {% endif %}
+                        <div class="form-text small mt-2">Please provide a clear reason why this item is being
+                            discharged.</div>
+                    </div>
+
+                    <div class="d-grid shadow-sm">
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            <i class="fas fa-trash-alt me-2"></i>Confirm Discharge
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

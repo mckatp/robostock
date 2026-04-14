@@ -19,6 +19,7 @@ urlpatterns = [
     path('profile/', views.edit_profile, name='edit_profile'),
     path('checkout/self/<int:pk>/', views.checkout_self, name='checkout_self'),
     path('beneficiaries/', views.beneficiary_list, name='beneficiary_list'),
+    path('kits/', views.kit_list, name='kit_list'),
     path('beneficiary/add/', views.add_beneficiary, name='add_beneficiary'),
     path('api/beneficiary/data/<path:employee_id>/', views.get_beneficiary_data, name='get_beneficiary_data'),
     path('beneficiary/<int:pk>/', views.beneficiary_detail, name='beneficiary_detail'),
@@ -28,5 +29,23 @@ urlpatterns = [
     path('sale/<int:pk>/mark_paid/', views.mark_sale_paid, name='mark_sale_paid'),
     path('components/', views.component_list, name='component_list'),
     path('sales/', views.sale_list, name='sale_list'),
+    path('checkouts/', views.checkout_list, name='checkout_list'),
     path('component/<int:pk>/restock/', views.restock_component, name='restock_component'),
+    path('component/<int:pk>/to-general-kit/', views.checkout_to_general_kit, name='checkout_to_general_kit'),
+    path('component/<int:pk>/dismiss-low-stock/', views.dismiss_low_stock, name='dismiss_low_stock'),
+    
+    # Kit Items
+    path('kit/<int:pk>/add_item/', views.add_kit_item, name='add_kit_item'),
+    path('kit/item/<int:item_id>/update_qty/', views.update_kit_item_qty, name='update_kit_item_qty'),
+    path('kit/item/<int:item_id>/delete/', views.delete_kit_item, name='delete_kit_item'),
+
+    # General Kit (independent section)
+    path('general-kit/', views.general_kit_list, name='general_kit_list'),
+    path('general-kit/add/', views.add_general_kit_item, name='add_general_kit_item'),
+    path('general-kit/<int:pk>/edit/', views.edit_general_kit_item, name='edit_general_kit_item'),
+    path('general-kit/<int:pk>/delete/', views.delete_general_kit_item, name='delete_general_kit_item'),
+    path('general-kit/<int:pk>/checkout/', views.checkout_general_kit_item, name='checkout_general_kit_item'),
+    path('general-kit/<int:pk>/update_qty/', views.update_general_kit_qty, name='update_general_kit_qty'),
+    path('stock-logs/', views.stock_movement_list, name='stock_movement_list'),
+    path('discharge/<int:pk>/<str:item_type>/', views.discharge_damaged, name='discharge_damaged'),
 ]

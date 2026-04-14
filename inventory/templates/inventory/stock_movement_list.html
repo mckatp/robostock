@@ -1,0 +1,97 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Stock Movement Logs - RoboStock{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1"><i class="fas fa-history me-2 text-primary"></i>Stock Movement Logs</h1>
+        <p class="text-secondary mb-0">Record of transfers, damages, and restocks.</p>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Date & Time</th>
+                        <th>Type</th>
+                        <th>Item</th>
+                        <th class="text-center">Qty</th>
+                        <th>User</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in movements %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-medium">{{ log.timestamp|date:"M d, Y" }}</div>
+                            <div class="small text-muted">{{ log.timestamp|date:"H:i" }}</div>
+                        </td>
+                        <td>
+                            {% if log.movement_type == 'TRANSFER' %}
+                            <span
+                                class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1">
+                                <i class="fas fa-exchange-alt me-1"></i>Transfer
+                            </span>
+                            {% elif log.movement_type == 'DAMAGE' %}
+                            <span
+                                class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Damage
+                            </span>
+                            {% elif log.movement_type == 'RESTOCK' %}
+                            <span
+                                class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">
+                                <i class="fas fa-plus-circle me-1"></i>Restock
+                            </span>
+                            {% else %}
+                            <span
+                                class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1">
+                                {{ log.get_movement_type_display }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.component %}
+                            <a href="{% url 'component_detail' log.component.pk %}" class="text-decoration-none">
+                                <i class="fas fa-microchip me-1 opacity-50"></i>{{ log.component.name }}
+                            </a>
+                            {% elif log.general_kit_item %}
+                            <span class="text-info">
+                                <i class="fas fa-toolbox me-1 opacity-50"></i>{{ log.general_kit_item.name }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">Deleted Item</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center fw-bold">{{ log.quantity }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm bg-primary bg-opacity-10 text-primary rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                    style="width: 24px; height: 24px; font-size: 10px;">
+                                    {{ log.user.username|slice:":1"|upper }}
+                                </div>
+                                <span class="small">{{ log.user.username }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="small text-muted">{{ log.notes|truncatewords:10 }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <i class="fas fa-history fa-3x text-secondary opacity-25 mb-3"></i>
+                            <p class="text-muted">No stock movements found.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

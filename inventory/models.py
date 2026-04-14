@@ -26,6 +26,8 @@ class Component(models.Model):
     ]
     component_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='GENERAL')
     last_updated = models.DateTimeField(auto_now=True)
+    low_stock_dismissed = models.BooleanField(default=False, help_text="If True, this component is excluded from the low-stock warning panel")
+
 
     def __str__(self):
         return self.name
@@ -72,7 +74,8 @@ class Beneficiary(models.Model):
         return f"{self.name} ({self.category})"
 
 class Transaction(models.Model):
-    component = models.ForeignKey(Component, on_delete=models.CASCADE)
+    component = models.ForeignKey(Component, on_delete=models.CASCADE, null=True, blank=True)
+    general_kit_item = models.ForeignKey('GeneralKitItem', on_delete=models.CASCADE, null=True, blank=True, related_name='transactions')
     borrower = models.ForeignKey(Beneficiary, on_delete=models.CASCADE, null=True)
     authorized_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True)
     checkout_time = models.DateTimeField(auto_now_add=True)
@@ -81,7 +84,16 @@ class Transaction(models.Model):
     notes = models.TextField(blank=True, null=True, help_text="Optional description or notes")
 
     def __str__(self):
-        return f"{self.borrower.name} - {self.component.name}"
+        item_name = self.component.name if self.component else (self.general_kit_item.name if self.general_kit_item else "Unknown Item")
+        return f"{self.borrower.name if self.borrower else 'Unknown'} - {item_name}"
+
+class KitItem(models.Model):
+    kit = models.ForeignKey(Component, on_delete=models.CASCADE, related_name='items', limit_choices_to={'component_type': 'KIT'})
+    name = models.CharField(max_length=200)
+    quantity = models.IntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.name} (x{self.quantity}) in {self.kit.name}"
 
 class Sale(models.Model):
     component = models.ForeignKey(Component, on_delete=models.CASCADE)
@@ -96,3 +108,42 @@ class Sale(models.Model):
 
     def __str__(self):
         return f"{self.buyer.name if self.buyer else 'Unknown'} - {self.component.name}"
+
+class GeneralKitItem(models.Model):
+    """Items in the General Kit — separate from inventory, for daily-use tracking."""
+    serial_number = models.CharField(max_length=100, unique=True, help_text="Unique identifier for this item")
+    name = models.CharField(max_length=200)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='general_kit_items')
+    count = models.IntegerField(default=0, help_text="Current quantity available")
+    description = models.TextField(blank=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} (×{self.count})"
+
+class StockMovement(models.Model):
+    MOVEMENT_TYPES = [
+        ('TRANSFER', 'Transfer to General Kit'),
+        ('DAMAGE', 'Discharged as Damaged'),
+        ('RESTOCK', 'Restocked'),
+        ('LOST', 'Lost'),
+    ]
+    
+    component = models.ForeignKey(Component, on_delete=models.CASCADE, null=True, blank=True, related_name='movements')
+    general_kit_item = models.ForeignKey('GeneralKitItem', on_delete=models.CASCADE, null=True, blank=True, related_name='movements')
+    movement_type = models.CharField(max_length=20, choices=MOVEMENT_TYPES)
+    quantity = models.IntegerField()
+    user = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        item_name = self.component.name if self.component else (self.general_kit_item.name if self.general_kit_item else "Unknown")
+        return f"{self.movement_type} - {item_name} ({self.quantity})"

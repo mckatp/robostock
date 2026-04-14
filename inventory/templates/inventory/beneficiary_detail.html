@@ -18,8 +18,7 @@
                 <span class="badge bg-info text-dark mt-2">{{ beneficiary.role }}</span>
             </div>
             <div class="text-end">
-                <p class="text-muted small mb-1"><i class="fas fa-envelope me-2"></i>{{ beneficiary.email|default:"No
-                    email" }}</p>
+                <p class="text-muted small mb-1"><i class="fas fa-envelope me-2"></i>{{ beneficiary.email|default:"No                     email" }}</p>
                 <p class="text-muted small mb-2">Added by: {{ beneficiary.added_by.username }}</p>
                 {% if request.user.is_staff %}
                 <div class="d-flex gap-2 justify-content-end">
@@ -55,7 +54,13 @@
                     {% for t in transactions %}
                     <tr>
                         <td>
+                            {% if t.component %}
                             <a href="{% url 'component_detail' t.component.pk %}">{{ t.component.name }}</a>
+                            {% elif t.general_kit_item %}
+                            <span class="text-info"><i class="fas fa-toolbox me-1"></i>{{ t.general_kit_item.name                                 }}</span>
+                            {% else %}
+                            <span class="text-muted">Unknown Item</span>
+                            {% endif %}
                         </td>
                         <td>{{ t.quantity_taken }}</td>
                         <td>{{ t.checkout_time|date:"M d, Y H:i" }}</td>
@@ -66,7 +71,7 @@
                             {% else %}
                             <span class="badge bg-warning text-dark">Checked Out</span>
                             {% if request.user.is_staff %}
-                            <a href="{% url 'return_component' t.pk %}"
+                            <a href="{% url 'return_component' t.pk %}?next={{ request.path }}"
                                 class="btn btn-sm btn-outline-success ms-2">Return</a>
                             {% endif %}
                             {% endif %}
