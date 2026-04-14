@@ -26,6 +26,8 @@ class Component(models.Model):
     ]
     component_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='GENERAL')
     last_updated = models.DateTimeField(auto_now=True)
+    low_stock_dismissed = models.BooleanField(default=False, help_text="If True, this component is excluded from the low-stock warning panel")
+
 
     def __str__(self):
         return self.name

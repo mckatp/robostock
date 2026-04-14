@@ -43,7 +43,7 @@ def dashboard(request):
     # Fetch recent general kit items
     general_kit_items = GeneralKitItem.objects.all().order_by('-last_updated')[:4]
 
-    low_stock_components = Component.objects.filter(component_type='GENERAL', quantity__lte=5).order_by('quantity', 'name')
+    low_stock_components = Component.objects.filter(component_type='GENERAL', quantity__lte=5, low_stock_dismissed=False).order_by('quantity', 'name')
 
     # Limit to latest items for dashboard summary
     latest_components = components.order_by('-last_updated')[:4]
@@ -871,4 +871,22 @@ def discharge_damaged(request, pk, item_type):
         'item': item,
         'item_type': item_type,
         'title': f'Discharge Damaged: {item.name}'
+    })
+
+@login_required
+@user_passes_test(is_admin_or_staff)
+@require_POST
+def dismiss_low_stock(request, pk):
+    """Toggle the low-stock warning dismissal for a component.
+    Returns JSON for AJAX callers (dashboard), or redirects for form callers (component detail).
+    """
+    component = get_object_or_404(Component, pk=pk)
+    component.low_stock_dismissed = not component.low_stock_dismissed
+    component.save(update_fields=['low_stock_dismissed'])
+    next_url = request.POST.get('next')
+    if next_url:
+        return redirect(next_url)
+    return JsonResponse({
+        'dismissed': component.low_stock_dismissed,
+        'name': component.name,
     })

@@ -131,8 +131,8 @@
                             <div class="comp-card__footer">
                                 <span
                                     class="comp-card__qty {% if component.quantity == 0 %}qty-zero{% elif component.quantity <= 5 %}qty-low{% else %}qty-ok{% endif %}">
-                                    {% if component.quantity == 0 %}<i class="fas fa-times-circle me-1"></i>Out of
-                                    stock{% else %}<i class="fas fa-cubes me-1"></i>{{ component.quantity }} in stock{% endif %}
+                                    {% if component.quantity == 0 %}<i class="fas fa-times-circle me-1"></i>Out of stock
+                                    {% else %}<i class="fas fa-cubes me-1"></i>{{ component.quantity }} in stock{% endif %}
                                 </span>
                                 <span class="comp-card__date text-muted">{{ component.last_updated|date:"M d" }}</span>
                             </div>
@@ -179,7 +179,8 @@
                             <div class="comp-card__footer">
                                 <span
                                     class="comp-card__qty {% if item.count == 0 %}qty-zero{% elif item.count <= 2 %}qty-low{% else %}qty-ok{% endif %}">
-                                    {% if item.count == 0 %}<i class="fas fa-times-circle me-1"></i>Out of stock{% else %}<i class="fas fa-cubes me-1"></i>{{ item.count }} in kit{% endif %}
+                                    {% if item.count == 0 %}<i class="fas fa-times-circle me-1"></i>Out of stock
+                                    {% else %}<i class="fas fa-cubes me-1"></i>{{ item.count }} in kit{% endif %}
                                 </span>
                                 <span class="comp-card__date text-muted">{{ item.last_updated|date:"M d" }}</span>
                             </div>
@@ -250,14 +251,26 @@
         </div>
         <div class="low-stock-panel">
             {% for item in low_stock_components %}
-            <a href="{% url 'component_detail' item.pk %}" class="low-stock-row">
-                <span class="low-stock-row__name">{{ item.name|truncatechars:24 }}</span>
-                <span
-                    class="low-stock-row__qty 
-                    {% if item.quantity == 0 %}qty-zero{% elif item.quantity <= 2 %}qty-critical{% else %}qty-warn{% endif %}">
-                    {% if item.quantity == 0 %}Out{% else %}{{ item.quantity }} left{% endif %}
-                </span>
-            </a>
+            <div class="low-stock-row" id="low-stock-{{ item.pk }}">
+                <a href="{% url 'component_detail' item.pk %}" class="low-stock-row__name">{{ item.name|truncatechars:22 }}</a>
+
+                <div class="d-flex align-items-center gap-2">
+                    <span
+                        class="low-stock-row__qty
+                        {% if item.quantity == 0 %}qty-zero{% elif item.quantity <= 2 %}qty-critical{% else %}qty-warn{% endif %}">
+                        {% if item.quantity == 0 %}Out{% else %}{{ item.quantity }} left{% endif %}
+                    </span>
+                    {% if user.is_staff %}
+                    <form method="post" action="{% url 'dismiss_low_stock' item.pk %}" class="dismiss-form"
+                        data-pk="{{ item.pk }}">
+                        {% csrf_token %}
+                        <button type="submit" class="dismiss-btn" title="Dismiss this warning">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
             {% endfor %}
         </div>
         {% endif %}
@@ -712,6 +725,34 @@
         background: rgba(234, 179, 8, 0.1);
     }
 
+    /* ── Dismiss Button ── */
+    .dismiss-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        padding: 4px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        opacity: 0.5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .dismiss-btn:hover {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        opacity: 1;
+    }
+
+    .low-stock-row.fading {
+        opacity: 0;
+        transform: translateX(10px);
+        pointer-events: none;
+        transition: all 0.4s ease;
+    }
+
     /* ── Empty State ── */
     .empty-state {
         text-align: center;
@@ -765,4 +806,66 @@
         }
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle Low Stock Dismissal via AJAX
+        const dismissForms = document.querySelectorAll('.dismiss-form');
+
+        dismissForms.forEach(form => {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const pk = this.dataset.pk;
+                const row = document.getElementById(`low-stock-${pk}`);
+                const url = this.action;
+                const formData = new FormData(this);
+
+                // UI feedback: start fading immediately
+                row.classList.add('fading');
+
+                fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            // After animation completes, remove from DOM
+                            setTimeout(() => {
+                                row.remove();
+
+                                // Update the counter badge at the top
+                                const alertBadge = document.querySelector('.stat-card--alerts .stat-card__value');
+                                if (alertBadge) {
+                                    let count = parseInt(alertBadge.textContent);
+                                    if (!isNaN(count) && count > 0) {
+                                        alertBadge.textContent = count - 1;
+                                    }
+                                }
+
+                                // If no more low stock, hide panel entirely (optional)
+                                const panel = document.querySelector('.low-stock-panel');
+                                if (panel && panel.children.length === 0) {
+                                    panel.parentElement.style.display = 'none';
+                                }
+                            }, 400);
+                        } else {
+                            // On error, revert UI
+                            row.classList.remove('fading');
+                            alert('Failed to dismiss warning. Please try again.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        row.classList.remove('fading');
+                    });
+            });
+        });
+    });
+</script>
 {% endblock %}

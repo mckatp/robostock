@@ -32,6 +32,7 @@ urlpatterns = [
     path('checkouts/', views.checkout_list, name='checkout_list'),
     path('component/<int:pk>/restock/', views.restock_component, name='restock_component'),
     path('component/<int:pk>/to-general-kit/', views.checkout_to_general_kit, name='checkout_to_general_kit'),
+    path('component/<int:pk>/dismiss-low-stock/', views.dismiss_low_stock, name='dismiss_low_stock'),
     
     # Kit Items
     path('kit/<int:pk>/add_item/', views.add_kit_item, name='add_kit_item'),
