@@ -42,8 +42,7 @@
                 <div class="col-lg-7 col-xl-8">
                     <div class="card-body p-4 p-xl-5">
                         <div class="mb-4">
-                            <span class="badge bg-primary bg-gradient px-3 py-2 mb-2">{{ component.category.name
-                                }}</span>
+                            <span class="badge bg-primary bg-gradient px-3 py-2 mb-2">{{ component.category.name }}</span>
                             <h1 class="display-6 fw-bold text-white mb-1">{{ component.name }}</h1>
                             <p class="text-light opacity-75"><i class="fas fa-barcode me-2"></i>SN: <span
                                     class="fw-medium text-white">{{ component.serial_number|default:"—" }}</span></p>
@@ -267,8 +266,7 @@
                             <td>{{ t.authorized_by.get_full_name|default:t.authorized_by.username }}</td>
                             <td><span class="badge bg-info text-dark bg-opacity-75 px-3">{{ t.quantity_taken }}</span>
                             </td>
-                            <td>{{ t.checkout_time|date:"M d, Y" }} <span class="text-light opacity-50 small">@ {{
-                                    t.checkout_time|date:"H:i" }}</span></td>
+                            <td>{{ t.checkout_time|date:"M d, Y" }} <span class="text-light opacity-50 small">@ {{ t.checkout_time|date:"H:i" }}</span></td>
                             <td class="text-end pe-4">
                                 <a href="{% url 'return_component' t.pk %}?next={{ request.path|urlencode }}"
                                     class="btn btn-sm btn-outline-success rounded-pill px-3">
